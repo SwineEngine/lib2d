@@ -1,0 +1,22 @@
+lib2d is a 2D drawing and animation library for games. Both the C and Python
+API are given equal love and is suitable for games made with either language.
+
+lib2d is not a standalone game engine. An OpenGL context will need to be
+created before instantiating a lib2d scene. SDL2 is used by the example
+programs, but lib2d's only dependency is OpenGL.
+
+
+Rabbyt's spiritual successor
+----------------------------
+
+lib2d doesn't attempt to mimic Rabbyt's API or feature set. Instead, lib2d
+tries to learn from Rabbyt's mistakes while retaining the same goals and ideas.
+lib2d is as close to a Rabbyt 2.0 as you'll get.
+
+Some things lib2d does different from Rabbyt:
+
+* Python 3 support.
+* Better performance.
+* OpenGL ES 2.0
+* Simplified API.
+* C implementation and API, using ctypes to create a pythonic API.
