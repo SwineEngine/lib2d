@@ -106,6 +106,7 @@ ir_new() {
 
     ir->drawerList = NULL;
     ir->sort_buffer_dirty = false;
+    ir->sort_order_dirty = false;
     ir->viewportWidth = 1;
     ir->viewportHeight = 1;
     ir->translate[0] = 0;
@@ -208,6 +209,7 @@ struct geo_vert {
 
 void
 drawer_copy(struct drawer* dst, struct drawer const* src) {
+    dst->ir->sort_order_dirty = true;
     site_copy(&dst->site, &src->site);
     dst->image = src->image;
     if (dst->image)
@@ -323,6 +325,7 @@ drawer_set_site(struct drawer* drawer, struct site const* site) {
 void
 drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
     if (image == drawer->image) return;
+    drawer->ir->sort_order_dirty = true;
     if (drawer->image)
         ib_image_decref(drawer->image);
     drawer->image = image;
@@ -354,6 +357,7 @@ drawer_set_color(struct drawer* drawer, float color[4]) {
 void
 drawer_setMaterial(struct drawer* drawer,
         struct material* material) {
+    drawer->ir->sort_order_dirty = true;
     if (material == NULL) {
         material = drawer->ir->defaultMaterial;
     }
@@ -362,12 +366,14 @@ drawer_setMaterial(struct drawer* drawer,
 
 void
 drawer_setOrder(struct drawer* drawer, int order) {
+    drawer->ir->sort_order_dirty = true;
     drawer->order = order;
 }
 
 void
 drawer_set_clip_site(struct drawer* drawer,
         struct site const* site) {
+    drawer->ir->sort_order_dirty = true;
     if (site) {
         drawer->clip_site_set = true;
         site_copy(&drawer->clip_site, site);
@@ -378,11 +384,13 @@ drawer_set_clip_site(struct drawer* drawer,
 
 void
 drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
+    drawer->ir->sort_order_dirty = true;
     drawer->blend = blend;
 }
 
 void
 drawer_set_mask(struct drawer* drawer, struct drawer_mask* mask) {
+    drawer->ir->sort_order_dirty = true;
     drawer->mask = mask;
 }
 
@@ -852,6 +860,7 @@ drawDrawerList(struct ir* ir, struct batch* batch) {
     static int drawerCount = 0;
     if (ir->sort_buffer_dirty) {
         ir->sort_buffer_dirty = false;
+        ir->sort_order_dirty = true;
         drawerCount = 0;
         for (struct drawer* drawer = ir->drawerList;
                 drawer != NULL; drawer = drawer->next) {
@@ -867,8 +876,11 @@ drawDrawerList(struct ir* ir, struct batch* batch) {
     if (drawerCount == 0)
         return;
 
-    qsort(sortBuffer, drawerCount, sizeof(struct drawer*),
+    if (ir->sort_order_dirty) {
+        ir->sort_order_dirty = false;
+        qsort(sortBuffer, drawerCount, sizeof(struct drawer*),
             drawerSortCompare);
+    }
 
     struct material* material = sortBuffer[0]->material;
     batch_reset(batch, material);

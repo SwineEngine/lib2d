@@ -28,6 +28,7 @@ struct batch {
 struct ir {
     struct drawer* drawerList;
     bool sort_buffer_dirty;
+    bool sort_order_dirty;
     struct drawer_mask* maskList;
     int viewportWidth, viewportHeight;
     float translate[3];
