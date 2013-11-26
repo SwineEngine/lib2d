@@ -173,9 +173,8 @@ l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
 }
 
 void
-l2d_sprite_blend(struct l2d_sprite* s, int enabled) {
-    drawer_blend(s->drawer,
-        enabled ? BLEND_PREMULT : BLEND_DISABLED);
+l2d_sprite_blend(struct l2d_sprite* s, enum l2d_blend mode) {
+    drawer_blend(s->drawer, mode);
 }
 
 void

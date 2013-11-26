@@ -87,7 +87,7 @@ render_api_get_viewport(int[4]);
 
 void
 render_api_draw_batch(struct batch*, struct shader_handles*, struct
-        material*, struct material_handles*, enum blend);
+        material*, struct material_handles*, enum l2d_blend);
 
 void
 render_api_set_vec(int32_t handle, float x, float y, float z, float w);

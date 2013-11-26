@@ -42,10 +42,6 @@ struct ir {
 };
 struct l2d_image;
 struct material;
-enum blend {
-    BLEND_DISABLED,
-    BLEND_PREMULT,
-};
 
 struct ir*
 ir_new(void);
@@ -113,7 +109,7 @@ void
 drawer_clear_geo(struct drawer*);
 
 void
-drawer_blend(struct drawer*, enum blend);
+drawer_blend(struct drawer*, enum l2d_blend);
 
 void
 drawer_set_mask(struct drawer*, struct drawer_mask*);

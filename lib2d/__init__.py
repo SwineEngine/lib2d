@@ -45,6 +45,10 @@ class flags:
     ANCHOR_RIGHT = 1<<12
     ANCHOR_BOTTOM = 1<<13
 
+    BLEND_DISABLED = 0
+    BLEND_DEFAULT = 1
+    BLEND_PREMULT = 2
+
 def init():
     import importlib.machinery
     global _lib, _scene
@@ -140,8 +144,8 @@ class Sprite:
             self.__cbptr_on_anim_end = None
 
 
-    def blend(self, enabled):
-        _lib.l2d_sprite_blend(self._ptr, 1 if enabled else 0)
+    def blend(self, mode=flags.BLEND_DEFAULT):
+        _lib.l2d_sprite_blend(self._ptr, int(mode))
 
     def size(self, w, h, anchor=None):
         w = int(w)

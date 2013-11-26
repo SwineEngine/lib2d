@@ -78,7 +78,7 @@ struct drawer {
     float color[4];
     struct material* material;
     int order;
-    enum blend blend;
+    enum l2d_blend blend;
 
     struct geo_vert* geoVerticies; // stretchy buffer
     unsigned short* geoIndicies;
@@ -175,7 +175,7 @@ drawer_new(struct ir* ir) {
 
     drawer->order = 0;
 
-    drawer->blend = BLEND_PREMULT;
+    drawer->blend = l2d_BLEND_DEFAULT;
 
     drawer->geoVerticies = NULL;
     drawer->geoIndicies = NULL;
@@ -377,7 +377,7 @@ drawer_set_clip_site(struct drawer* drawer,
 }
 
 void
-drawer_blend(struct drawer* drawer, enum blend blend) {
+drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
     drawer->blend = blend;
 }
 
@@ -737,7 +737,7 @@ static
 void
 batch_flush(struct ir* ir, struct batch* batch,
         struct material* material,
-        struct l2d_image* image, enum blend blend,
+        struct l2d_image* image, enum l2d_blend blend,
         struct drawer_mask* mask,
         bool desaturate,
         int viewportWidth, int viewportHeight) {
@@ -873,7 +873,7 @@ drawDrawerList(struct ir* ir, struct batch* batch) {
     struct material* material = sortBuffer[0]->material;
     batch_reset(batch, material);
     struct l2d_image* image = sortBuffer[0]->image;
-    enum blend blend = sortBuffer[0]->blend;
+    enum l2d_blend blend = sortBuffer[0]->blend;
     struct drawer_mask* mask = sortBuffer[0]->mask;
     bool desaturate = sortBuffer[0]->desaturate;
     for (int i = 0; i < drawerCount; i++) {

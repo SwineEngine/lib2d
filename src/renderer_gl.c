@@ -116,21 +116,27 @@ render_api_draw_start(int fbo_target, int viewport_w, int viewport_h) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_target);
     glViewport(0,0, viewport_w, viewport_h);
     glDisable(GL_CULL_FACE);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void
 render_api_draw_batch(struct batch* batch,
         struct shader_handles* shader,
         struct material* material, struct material_handles* h,
-        enum blend blend) {
+        enum l2d_blend blend) {
     switch (blend) {
-    case BLEND_DISABLED:
+    case l2d_BLEND_DISABLED:
         glDisable(GL_BLEND);
         break;
-    default:
+    case l2d_BLEND_DEFAULT:
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
         break;
+    case l2d_BLEND_PREMULT:
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        break;
+    default:
+        assert(false);
     }
 
     struct vertex* v = batch->verticies;

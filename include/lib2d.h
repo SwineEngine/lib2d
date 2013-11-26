@@ -28,6 +28,12 @@ enum l2d_image_format {
     l2d_IMAGE_FORMAT_A_8,
 };
 
+enum l2d_blend {
+    l2d_BLEND_DISABLED,
+    l2d_BLEND_DEFAULT,
+    l2d_BLEND_PREMULT,
+};
+
 struct l2d_ident;
 typedef struct l2d_ident* l2d_ident;
 
@@ -124,7 +130,7 @@ bool
 l2d_sprite_feed_click(struct l2d_sprite*, float x, float y, int button);
 
 void
-l2d_sprite_blend(struct l2d_sprite*, int enabled);
+l2d_sprite_blend(struct l2d_sprite*, enum l2d_blend);
 
 void
 l2d_sprite_xy(struct l2d_sprite*, float x, float y, float dt, uint32_t anim_flags);
