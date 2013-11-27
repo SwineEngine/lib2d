@@ -21,7 +21,7 @@ setup(
     author_email = "marshallpenguin@gmail.com",
     description = "A 2D drawing an animation engine using OpenGL",
     license = "MIT",
-    url="http://arcticpaint.com/lib2d/",
+    url="http://lib2d.com",
     long_description=open("README").read(),
 
     packages = ["lib2d"],

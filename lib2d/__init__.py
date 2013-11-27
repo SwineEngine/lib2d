@@ -50,10 +50,14 @@ class flags:
     BLEND_PREMULT = 2
 
 def init():
-    import importlib.machinery
     global _lib, _scene
-    f = importlib.machinery.PathFinder.find_module("_lib2d")
-    _lib = ctypes.CDLL(f.path)
+    try:
+        import importlib.machinery
+        f = importlib.machinery.PathFinder.find_module("_lib2d").path
+    except ImportError:
+        import imp
+        f = imp.find_module("_lib2d")[1]
+    _lib = ctypes.CDLL(f)
     _scene = _lib.l2d_scene_new(_lib.l2d_init_default_resources())
 
 def step(dt):
@@ -86,7 +90,7 @@ class Sprite:
     def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER):
         Sprite.__refs.add(self)
         self._anchor = anchor
-        ident = _lib.l2d_ident_from_str(ctypes.c_char_p(bytes(image, 'utf8')))
+        ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
         self._ptr = _lib.l2d_sprite_new(_scene, ident, anchor)
         self._on_click = None
         self._on_anim_end = None

@@ -56,7 +56,7 @@ while running:
         SDL_Delay(1)
         dt = 1
     if next_print <= 0:
-        SDL_SetWindowTitle(win, bytes(str(frames_past)+" FPS", 'utf8'))
+        SDL_SetWindowTitle(win, (str(frames_past)+" FPS").encode('utf8'))
         frames_past = 0
         next_print = 1000
 
