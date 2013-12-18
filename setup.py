@@ -19,7 +19,7 @@ setup(
     version = version,
     author = "Joseph Marshall",
     author_email = "marshallpenguin@gmail.com",
-    description = "A 2D drawing an animation engine using OpenGL",
+    description = "A 2D drawing and animation engine using OpenGL",
     license = "MIT",
     url="http://lib2d.com",
     long_description=open("README").read(),

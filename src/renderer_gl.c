@@ -147,16 +147,19 @@ render_api_draw_batch(struct batch* batch,
     glVertexAttribPointer(shader->texCoordHandle,
             2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
             &v[0].texCoord[0]);
-    glVertexAttribPointer(shader->miscAttrib,
-            4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-            &v[0].misc[0]);
     glVertexAttribPointer(shader->colorAttrib,
             4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
             &v[0].color[0]);
     glEnableVertexAttribArray(shader->positionHandle);
     glEnableVertexAttribArray(shader->texCoordHandle);
-    glEnableVertexAttribArray(shader->miscAttrib);
     glEnableVertexAttribArray(shader->colorAttrib);
+
+    if (shader->miscAttrib != -1) {
+        glVertexAttribPointer(shader->miscAttrib,
+                4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+                &v[0].misc[0]);
+        glEnableVertexAttribArray(shader->miscAttrib);
+    }
 
     for (size_t i=0; i<sbcount(material->attributes); i++) {
         GLint handle = h->attributes[i];
@@ -174,7 +177,8 @@ render_api_draw_batch(struct batch* batch,
 
     glDisableVertexAttribArray(shader->positionHandle);
     glDisableVertexAttribArray(shader->texCoordHandle);
-    glDisableVertexAttribArray(shader->miscAttrib);
+    if (shader->miscAttrib != -1)
+        glDisableVertexAttribArray(shader->miscAttrib);
     glDisableVertexAttribArray(shader->colorAttrib);
 
     for (size_t i=0; i<sbcount(material->attributes); i++) {
