@@ -2,11 +2,9 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #else
-#ifndef GL_GLEXT_PROTOTYPES
-#define GL_GLEXT_PROTOTYPES
+#include "gl_core_3_3.h"
 #endif
-#include <GL/gl.h>
-#endif
+
 
 #include <stdio.h>
 

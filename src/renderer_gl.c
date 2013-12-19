@@ -577,7 +577,7 @@ materialSetUpUniforms(struct material* m, unsigned int shader_variant,
         (*next_texture_slot)++;
     }
 
-    static void (*uniformAPICalls[])(GLint, GLsizei, const GLfloat*)  = {
+    void (*uniformAPICalls[])(GLint, GLsizei, const GLfloat*)  = {
             glUniform1fv, glUniform2fv, glUniform3fv, glUniform4fv};
     for (int i=0; i<sbcount(m->podUniforms); i++) {
         struct material_pod_uniform* entry = &m->podUniforms[i];

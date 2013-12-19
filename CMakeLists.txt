@@ -21,6 +21,11 @@ set(SOURCES
     src/nine_patch
 )
 
+if(EMSCRIPTEN)
+else()
+    set(SOURCES src/gl_core_3_3 ${SOURCES})
+endif()
+
 
 if(EXTERNAL_RENDER)
     set(SOURCES src/renderer_external ${SOURCES})

@@ -1,15 +1,24 @@
 from distutils.core import setup, Extension
-import os, re
+import os, sys, re
+
+sources = ['src/'+f for f in os.listdir('src') if f.endswith('.c') and f != "stb_image.c"]
+if sys.platform == 'win32':
+    libs = ['opengl32']
+    extra_link_args = ['-Wl,--export-all-symbols']
+else:
+    sources.remove("src/python.c") # This only seems to be needed on windows
+    libs = ['GL', 'm']
+    extra_link_args = []
 
 native = Extension('_lib2d',
                     define_macros = [],
                     include_dirs = ['include'],
-                    libraries = ['GL', 'm'],
+                    libraries = libs,
                     library_dirs = [],
-                    extra_compile_args=['-std=c99','-O3'],
-                    sources = ['src/'+f for f in os.listdir('src') if
-                        f.endswith('.c') and f != "stb_image.c"],
-                    language='c')
+                    extra_compile_args=['-std=c99'],
+                    sources = sources,
+                    language='c',
+                    extra_link_args=extra_link_args)
 
 version = re.search(r'__version__ = "([0-9\.a-z\-]+)"',
         open("lib2d/__init__.py").read()).groups()[0]
