@@ -115,6 +115,8 @@ ir_new() {
 
     ir->defaultMaterial = render_api_material_new(
             render_api_load_shader(SHADER_DEFAULT));
+    ir->premultMaterial = render_api_material_new(
+            render_api_load_shader(SHADER_PREMULT));
     ir->singleChannelDefaultMaterial = render_api_material_new(
             render_api_load_shader(SHADER_SINGLE_CHANNEL));
 
@@ -386,6 +388,14 @@ void
 drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
     drawer->ir->sort_order_dirty = true;
     drawer->blend = blend;
+
+    if (blend == l2d_BLEND_PREMULT &&
+            drawer->material == drawer->ir->defaultMaterial) {
+        drawer->material = drawer->ir->premultMaterial;
+    } else if (blend == l2d_BLEND_DEFAULT &&
+            drawer->material == drawer->ir->premultMaterial) {
+        drawer->material = drawer->ir->defaultMaterial;
+    }
 }
 
 void

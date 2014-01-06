@@ -253,6 +253,21 @@ static const char* defaultFragmentSource =
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
         "void main() {\n"
+        "    gl_FragColor = texture2D(texture, texCoord_v)*color_v*vec4(1.0, 1.0, 1.0, alpha_v);\n"
+        "MASK_FRAGMENT_BODY"
+        "DESATURATE_FRAGMENT_BODY"
+        "}\n";
+static const char* premultFragmentSource =
+#ifdef GLES
+        "precision mediump float;\n"
+#endif
+        "varying vec2 texCoord_v;\n"
+        "varying float alpha_v;\n"
+        "varying vec4 color_v;\n"
+        "uniform SAMPLER0 texture;\n"
+        "MASK_FRAGMENT_HEAD"
+        "DESATURATE_FRAGMENT_HEAD"
+        "void main() {\n"
         "    gl_FragColor = texture2D(texture, texCoord_v)*color_v*alpha_v;\n"
         "MASK_FRAGMENT_BODY"
         "DESATURATE_FRAGMENT_BODY"
@@ -704,6 +719,8 @@ render_api_load_shader(enum shader_type t) {
     switch (t) {
     case SHADER_DEFAULT:
         return shader_new(defaultVertexSource, defaultFragmentSource);
+    case SHADER_PREMULT:
+        return shader_new(defaultVertexSource, premultFragmentSource);
     case SHADER_SINGLE_CHANNEL:
         return shader_new(defaultVertexSource, singleChannelFragmentSource);
     case SHADER_BLUR_H:

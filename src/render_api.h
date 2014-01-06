@@ -97,6 +97,7 @@ render_api_draw_start(int fbo_target, int viewport_w, int viewport_h);
 
 enum shader_type {
     SHADER_DEFAULT,
+    SHADER_PREMULT,
     SHADER_BLUR_H,
     SHADER_BLUR_V,
     SHADER_UPSAMPLE,

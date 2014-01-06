@@ -33,6 +33,7 @@ struct ir {
     int viewportWidth, viewportHeight;
     float translate[3];
     struct material* defaultMaterial;
+    struct material* premultMaterial;
     struct material* singleChannelDefaultMaterial;
 
     struct shader** shaderRegistery; // stretchy buffer
