@@ -192,4 +192,4 @@ class Sprite:
     def abort_anim(self):
         _lib.l2d_sprite_abort_anim(self._ptr)
 
-__all__ = ['init', 'step', 'render', 'set_viewport', 'clear', 'Sprite', 'flags']
+__all__ = ['init', 'step', 'render', 'set_viewport', 'set_translate', 'clear', 'Sprite', 'flags']
