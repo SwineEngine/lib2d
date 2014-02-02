@@ -79,6 +79,9 @@ void
 site_copy(struct site* dest, struct site const* source);
 
 void
+site_apply_parent(struct site* dest, struct site const* parent);
+
+void
 site_init(struct site* site);
 
 bool

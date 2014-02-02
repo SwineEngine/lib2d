@@ -94,6 +94,7 @@ class Sprite:
         self._ptr = _lib.l2d_sprite_new(_scene, ident, anchor)
         self._on_click = None
         self._on_anim_end = None
+        self._parent = None
         if x or y:
             self.xy(x,y)
 
@@ -109,6 +110,15 @@ class Sprite:
             _lib.l2d_sprite_delete(self._ptr)
             self._ptr = 0
             Sprite.__refs.remove(self)
+
+    @property
+    def parent(self):
+        return self._parent
+    @parent.setter
+    def parent(self, p):
+        assert(p is None or isinstance(p, Sprite))
+        self._parent = p
+        _lib.l2d_sprite_set_parent(self._ptr, p._ptr if p else None)
 
     def __float_wrap(self, *args):
         return [ctypes.c_float(a) for a in args]

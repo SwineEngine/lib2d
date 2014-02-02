@@ -10,6 +10,8 @@
 
 struct l2d_sprite {
     struct l2d_scene* scene;
+    struct l2d_sprite* parent;
+    struct l2d_sprite** children; // stretchy_buffer
     struct site site;
     struct drawer* drawer;
     float rot;
@@ -24,12 +26,15 @@ struct l2d_sprite {
     l2d_sprite_cb on_anim_end;
     void* on_anim_end_userdata;
     bool animated_last_step;
+    bool has_new_parent;
 };
 
 struct l2d_sprite*
 l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     struct l2d_sprite* s = malloc(sizeof(struct l2d_sprite));
     s->scene = scene;
+    s->parent = NULL;
+    s->children = NULL;
     site_init(&s->site);
     s->drawer = drawer_new(scene->ir);
     sbpush(scene->sprites, s);
@@ -65,11 +70,21 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->on_anim_end = NULL;
     s->on_anim_end_userdata = NULL;
     s->animated_last_step = false;
+    s->has_new_parent = false;
     return s;
 }
 
 void
 i_sprite_delete(struct l2d_sprite* s) {
+    // Called by l2d_scene_delete because l2d_sprite_delete attempts to remove
+    // self from scene.
+    sbforeachv(struct l2d_sprite* child, s->children) {
+        child->parent = NULL;
+    }
+    if (s->parent) {
+        l2d_sprite_set_parent(s, NULL);
+    }
+    sbfree(s->children);
     drawer_delete(s->drawer);
     l2d_sprite_abort_anim(s);
     free(s);
@@ -85,6 +100,23 @@ l2d_sprite_delete(struct l2d_sprite* s) {
         }
     }
     i_sprite_delete(s);
+}
+
+void
+l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
+    if (p != s->parent && s->parent) {
+        for (int i=0; i<sbcount(s->parent->children); i++) {
+            struct l2d_sprite* child = s->parent->children[i];
+            if (child == s) {
+                sbremove(s->parent->children, i, 1);
+                break;
+            }
+        }
+    }
+
+    s->parent = p;
+    if (p) sbpush(p->children, s);
+    s->has_new_parent = true;
 }
 
 void
@@ -109,7 +141,9 @@ l2d_sprite_set_size(struct l2d_sprite* s, int w, int h, uint32_t flags) {
         s->site.rect.t = -h;
         s->site.rect.b = 0;
     }
-    drawer_set_site(s->drawer, &s->site);
+    // If this sprite has a parent, the site will be set in step.
+    if (s->parent == NULL)
+        drawer_set_site(s->drawer, &s->site);
 }
 
 void
@@ -129,9 +163,13 @@ l2d_sprite_set_on_anim_end(struct l2d_sprite* s, l2d_sprite_cb cb, void* userdat
     s->on_anim_end_userdata = userdata;
 }
 
+static
 void
-l2d_sprite_step(struct l2d_sprite* s, float dt) {
-    bool u_site = false;
+i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool parent_changed) {
+    struct site* pass_down = &s->site;
+
+    bool u_site = s->has_new_parent;
+    s->has_new_parent = false;
     u_site |= l2d_anim_step(&s->anims_rot, dt, &s->rot);
     if (u_site)
         quaternion_angle_axis(&s->site.quaternion, s->rot, 0, 0, 1);
@@ -139,8 +177,17 @@ l2d_sprite_step(struct l2d_sprite* s, float dt) {
     u_site |= l2d_anim_step(&s->anims_x, dt, &s->site.x);
     u_site |= l2d_anim_step(&s->anims_y, dt, &s->site.y);
     u_site |= l2d_anim_step(&s->anims_scale, dt, &s->site.scale);
-    if (u_site)
-        drawer_set_site(s->drawer, &s->site);
+    if (u_site || parent_changed) {
+        struct site* site = &s->site;
+        if (parent_site) {
+            struct site stack_site;
+            site_copy(&stack_site, site);
+            site_apply_parent(&stack_site, parent_site);
+            site = &stack_site;
+        }
+        pass_down = site;
+        drawer_set_site(s->drawer, site);
+    }
 
     bool u_color = false;
     u_color |= l2d_anim_step(&s->anims_r, dt, &s->color[0]);
@@ -158,6 +205,18 @@ l2d_sprite_step(struct l2d_sprite* s, float dt) {
     } else {
         s->animated_last_step = true;
     }
+
+    sbforeachv(struct l2d_sprite* child, s->children) {
+        i_sprite_step(child, dt, pass_down,
+                u_site||(s->parent && parent_changed));
+    }
+}
+
+void
+l2d_sprite_step(struct l2d_sprite* s, float dt) {
+    if (s->parent != NULL)
+        return; // Called from scene_step. Skip, we want parents to call their children.
+    i_sprite_step(s, dt, NULL, false);
 }
 
 

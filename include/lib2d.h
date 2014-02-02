@@ -115,6 +115,9 @@ void
 l2d_sprite_delete(struct l2d_sprite*);
 
 void
+l2d_sprite_set_parent(struct l2d_sprite*, struct l2d_sprite*);
+
+void
 l2d_sprite_set_size(struct l2d_sprite*, int w, int h, uint32_t sprite_flags);
 
 void

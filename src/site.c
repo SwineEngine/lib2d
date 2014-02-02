@@ -37,6 +37,21 @@ site_copy(struct site* dest, struct site const* source) {
 }
 
 void
+site_apply_parent(struct site* dest, struct site const* parent) {
+    quaternion_multiply(&dest->quaternion, &dest->quaternion, &parent->quaternion);
+    float vec[3];
+    vec[0] = dest->x * parent->scale;
+    vec[1] = dest->y * parent->scale;
+    vec[2] = dest->z * parent->scale;
+    if (parent->quaternion.w != 1.f)
+        quaternion_multiply_vector(vec, &parent->quaternion, vec);
+    dest->x = vec[0]+site_wrap(parent->x, parent->wrap);
+    dest->y = vec[1]+site_wrap(parent->y, parent->wrap+2);
+    dest->z = vec[2]+parent->z;
+    dest->scale *= parent->scale;
+}
+
+void
 site_init(struct site* site) {
     site->rect.l = 0.f;
     site->rect.t = 0.f;
