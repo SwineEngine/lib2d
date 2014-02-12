@@ -25,6 +25,7 @@ struct batch {
     struct attribute* attributes; //stretchy buffer
 };
 
+struct mat_cache_entry;
 struct ir {
     struct drawer* drawerList;
     bool sort_buffer_dirty;
@@ -35,6 +36,7 @@ struct ir {
     struct material* defaultMaterial;
     struct material* premultMaterial;
     struct material* singleChannelDefaultMaterial;
+    struct mat_cache_entry* material_cache; // stretchy_buffer
 
     struct shader** shaderRegistery; // stretchy buffer
 
@@ -74,6 +76,9 @@ drawer_set_clip_site(struct drawer*, struct site const*);
 
 void
 drawer_set_image(struct drawer*, struct l2d_image*);
+
+void
+drawer_set_effect(struct drawer*, struct l2d_effect*);
 
 void
 drawer_set_desaturate(struct drawer*, float);

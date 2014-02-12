@@ -101,6 +101,38 @@ l2d_set_image_data(struct l2d_scene*, l2d_ident image,
 
 
 
+/**
+ * Effects
+ *
+ * `input` of -1 will sample from the previously added component. (Or the main
+ * texture if no components have been added yet.
+ * A value of 0 samples from the main texture. 1 uses the output from the first
+ * added component, 2 from the second etc.
+ *
+ * Matrix values are always column major order.
+ */
+struct l2d_effect;
+
+struct l2d_effect*
+l2d_effect_new();
+
+void
+l2d_effect_delete(struct l2d_effect*);
+
+void
+l2d_effect_color_matrix(struct l2d_effect*, int input,
+        float transform[16]);
+
+void
+l2d_effect_fractal_noise(struct l2d_effect*, int input,
+        float frequency_x, float frequency_y,
+        int octaves, int seed);
+
+void
+l2d_effect_convolve_matrix(struct l2d_effect*, int input, float kernel[9]);
+
+
+
 
 struct l2d_scene;
 struct l2d_sprite;
@@ -128,6 +160,9 @@ l2d_sprite_set_on_click(struct l2d_sprite*, l2d_event_cb, void*);
 
 void
 l2d_sprite_set_on_anim_end(struct l2d_sprite*, l2d_sprite_cb, void*);
+
+void
+l2d_sprite_set_effect(struct l2d_sprite*, struct l2d_effect*);
 
 bool
 l2d_sprite_feed_click(struct l2d_sprite*, float x, float y, int button);

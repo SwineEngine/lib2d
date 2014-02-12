@@ -4,6 +4,7 @@
 #include "nine_patch.h"
 #include "stretchy_buffer.h"
 #include "render_api.h"
+#include "effect.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -73,6 +74,7 @@ struct drawer {
     struct drawer** prev;
     struct site site;
     struct l2d_image* image;
+    struct l2d_effect* effect;
     float alpha;
     float desaturate;
     float color[4];
@@ -100,6 +102,49 @@ struct drawer_mask {
     float alpha;
 };
 
+struct mat_cache_entry {
+    int effect_id;
+    enum l2d_blend blend;
+    struct material* material;
+};
+
+static
+void
+drawer_update_material(struct drawer* d) {
+    if (d->effect == NULL) {
+        if (ib_image_format(d->image) == l2d_IMAGE_FORMAT_A_8) {
+            d->material = d->ir->singleChannelDefaultMaterial;
+        } else if (d->blend == l2d_BLEND_PREMULT) {
+            d->material = d->ir->premultMaterial;
+        } else {
+            d->material = d->ir->defaultMaterial;
+        }
+    } else {
+        sbforeachp(struct mat_cache_entry* e, d->ir->material_cache) {
+            if (e->effect_id == d->effect->id && e->blend == d->blend) {
+                d->material = e->material;
+                return;
+            }
+        }
+
+        enum shader_type t = SHADER_DEFAULT;
+        if (ib_image_format(d->image) == l2d_IMAGE_FORMAT_A_8) {
+            t = SHADER_SINGLE_CHANNEL;
+        } else if (d->blend == l2d_BLEND_PREMULT) {
+            t = SHADER_PREMULT;
+        }
+
+        // TODO cache material
+        d->material = render_api_material_new(
+            render_api_load_shader(t), d->effect);
+
+        struct mat_cache_entry* e = sbadd(d->ir->material_cache, 1);
+        e->effect_id = d->effect->id;
+        e->blend = d->blend;
+        e->material = d->material;
+    }
+}
+
 struct ir*
 ir_new() {
     struct ir* ir = (struct ir*)malloc(sizeof(struct ir));
@@ -114,11 +159,12 @@ ir_new() {
     ir->translate[2] = 0;
 
     ir->defaultMaterial = render_api_material_new(
-            render_api_load_shader(SHADER_DEFAULT));
+            render_api_load_shader(SHADER_DEFAULT), NULL);
     ir->premultMaterial = render_api_material_new(
-            render_api_load_shader(SHADER_PREMULT));
+            render_api_load_shader(SHADER_PREMULT), NULL);
     ir->singleChannelDefaultMaterial = render_api_material_new(
-            render_api_load_shader(SHADER_SINGLE_CHANNEL));
+            render_api_load_shader(SHADER_SINGLE_CHANNEL), NULL);
+    ir->material_cache = NULL;
 
     ir->scratchVerticies = NULL;
     ir->scratchIndicies = NULL;
@@ -141,6 +187,7 @@ ir_delete(struct ir* ir) {
     }
 
     // TODO delete all created shaders.
+    // TODO delete all cached materials.
 
     sbfree(ir->scratchVerticies);
     sbfree(ir->scratchIndicies);
@@ -163,6 +210,7 @@ drawer_new(struct ir* ir) {
     drawer->prev = & ir->drawerList;
 
     drawer->image = NULL;
+    drawer->effect = NULL;
 
     site_init(&drawer->site);
     drawer->site.x = -2.f;
@@ -237,6 +285,13 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
                     sbcount(a->data)/a->size);
         }
     }
+}
+
+void
+drawer_set_effect(struct drawer* d, struct l2d_effect* e) {
+    d->ir->sort_order_dirty = true;
+    d->effect = e;
+    drawer_update_material(d);
 }
 
 void
@@ -333,13 +388,7 @@ drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
     drawer->image = image;
     if (drawer->image)
         ib_image_incref(drawer->image);
-    if (ib_image_format(image) == l2d_IMAGE_FORMAT_A_8
-            && drawer->material == drawer->ir->defaultMaterial)  {
-        drawer->material = drawer->ir->singleChannelDefaultMaterial;
-    } else if (ib_image_format(image) != l2d_IMAGE_FORMAT_A_8
-            && drawer->material == drawer->ir->singleChannelDefaultMaterial)  {
-        drawer->material = drawer->ir->defaultMaterial;
-    }
+    drawer_update_material(drawer);
 }
 
 void
@@ -388,14 +437,7 @@ void
 drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
     drawer->ir->sort_order_dirty = true;
     drawer->blend = blend;
-
-    if (blend == l2d_BLEND_PREMULT &&
-            drawer->material == drawer->ir->defaultMaterial) {
-        drawer->material = drawer->ir->premultMaterial;
-    } else if (blend == l2d_BLEND_DEFAULT &&
-            drawer->material == drawer->ir->premultMaterial) {
-        drawer->material = drawer->ir->defaultMaterial;
-    }
+    drawer_update_material(drawer);
 }
 
 void

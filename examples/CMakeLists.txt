@@ -4,5 +4,9 @@ project(lib2d-examples)
 add_definitions(-std=c99 -Wall -pedantic)
 
 configure_file(rounded_square.png ${CMAKE_CURRENT_BINARY_DIR}/rounded_square.png COPYONLY)
+
 add_executable(lotsofsprites lotsofsprites.c)
 target_link_libraries(lotsofsprites lib2d SDL2)
+
+add_executable(effects effects.c)
+target_link_libraries(effects lib2d SDL2)

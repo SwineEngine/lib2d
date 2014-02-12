@@ -163,6 +163,11 @@ l2d_sprite_set_on_anim_end(struct l2d_sprite* s, l2d_sprite_cb cb, void* userdat
     s->on_anim_end_userdata = userdata;
 }
 
+void
+l2d_sprite_set_effect(struct l2d_sprite* s, struct l2d_effect* e) {
+    drawer_set_effect(s->drawer, e);
+}
+
 static
 void
 i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool parent_changed) {

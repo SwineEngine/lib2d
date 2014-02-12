@@ -19,6 +19,8 @@ set(SOURCES
     src/site
     src/resources
     src/nine_patch
+    src/effect
+    src/template
 )
 
 if(EMSCRIPTEN)

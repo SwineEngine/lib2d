@@ -6,10 +6,13 @@
 #include <stdio.h>
 #include "stretchy_buffer.h"
 #include "image_bank.h"
+#include "effect.h"
+#include "template.h"
 
 #define MAX_MATERIAL_IMAGE_UNIFORMS 7
 struct material {
     struct shader* shader;
+    struct l2d_effect* effect;
 
     struct material_image_uniform imageUniforms[MAX_MATERIAL_IMAGE_UNIFORMS];
     unsigned long imageUniformCount;
@@ -250,10 +253,13 @@ static const char* defaultFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
         "void main() {\n"
-        "    gl_FragColor = texture2D(texture, texCoord_v)*color_v*vec4(1.0, 1.0, 1.0, alpha_v);\n"
+        "    vec4 tex = texture2D(texture, texCoord_v);\n"
+        "EFFECT_FRAGMENT_BODY"
+        "    gl_FragColor = gl_FragColor*color_v*vec4(1.0, 1.0, 1.0, alpha_v);\n"
         "MASK_FRAGMENT_BODY"
         "DESATURATE_FRAGMENT_BODY"
         "}\n";
@@ -265,10 +271,13 @@ static const char* premultFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
         "void main() {\n"
-        "    gl_FragColor = texture2D(texture, texCoord_v)*color_v*alpha_v;\n"
+        "    vec4 tex = texture2D(texture, texCoord_v);\n"
+        "EFFECT_FRAGMENT_BODY"
+        "    gl_FragColor = gl_FragColor*color_v*alpha_v;\n"
         "MASK_FRAGMENT_BODY"
         "DESATURATE_FRAGMENT_BODY"
         "}\n";
@@ -280,10 +289,13 @@ static const char* singleChannelFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
         "void main() {\n"
-        "    gl_FragColor = texture2D(texture, texCoord_v).a*color_v*alpha_v;\n"
+        "    vec4 tex = texture2D(texture, texCoord_v).a;\n"
+        "EFFECT_FRAGMENT_BODY"
+        "    gl_FragColor = gl_FragColor*color_v*alpha_v;\n"
         "MASK_FRAGMENT_BODY"
         "DESATURATE_FRAGMENT_BODY"
         "}\n";
@@ -367,10 +379,6 @@ static const char* fragmentSourceUpsample =
 
 
 
-struct template_var {
-    const char* key;
-    const char* value;
-};
 
 static struct template_var mask_vars[] = {
     {"MASK_VERTEX_HEAD",
@@ -417,31 +425,6 @@ struct shader {
     const char* fragmentSource;
 };
 
-static
-char*
-template(struct template_var* vars, const char* source, const char* prefix) {
-    // figure out the total size needed for the buffer
-    size_t len = strlen(source) + strlen(prefix);
-    for (size_t i=0; vars[i].key; i++) {
-        len += strlen(vars[i].key) + strlen(vars[i].value);
-    }
-
-    char* result = malloc(len+1);
-    strcpy(result, prefix);
-    strcat(result, source);
-
-    for (size_t i=0; vars[i].key; i++) {
-        char* found = strstr(result, vars[i].key);
-        if (found) {
-            size_t len_key = strlen(vars[i].key);
-            size_t len_value = strlen(vars[i].value);
-            memmove(found+len_value, found+len_key, strlen(found+len_key)+1);
-            memcpy(found, vars[i].value, len_value);
-        }
-    }
-
-    return result;
-}
 
 static
 void
@@ -465,7 +448,7 @@ update_vars(struct template_var* dest, struct template_var const* src) {
 
 static
 void
-loadProgram(struct shader* program, unsigned int variant) {
+loadProgram(struct shader* program, unsigned int variant, struct l2d_effect* effect) {
     const char* fragmentPrefix = "";
 
     struct template_var vars[] = {
@@ -478,7 +461,29 @@ loadProgram(struct shader* program, unsigned int variant) {
         {"DESATURATE_VERTEX_BODY",""},
         {"DESATURATE_FRAGMENT_HEAD",""},
         {"DESATURATE_FRAGMENT_BODY",""},
+        {"EFFECT_FRAGMENT_BODY",  "gl_FragColor = tex;\n"},
         {0,0}};
+
+    char* effect_body = NULL;
+    if (effect) {
+        char* effect_assign[32];
+        sprintf(effect_assign, "gl_FragColor = e_%i;\n", sbcount(effect->components));
+        int l = strlen(effect_assign);
+        sbforeachv(const char* c, effect->components) {
+            l += strlen(c);
+        }
+        effect_body = malloc(l+1);
+
+        int n = 0;
+        sbforeachv(const char* c, effect->components) {
+            int len = strlen(c);
+            strcpy(effect_body+n, c);
+            n += len;
+        }
+        strcpy(effect_body+n, effect_assign);
+
+        set_var(vars, "EFFECT_FRAGMENT_BODY", effect_body);
+    }
 
     if (variant & SHADER_EXTERNAL_IMAGE) {
         fragmentPrefix = "#extension GL_OES_EGL_image_external : require\n";
@@ -493,10 +498,10 @@ loadProgram(struct shader* program, unsigned int variant) {
         update_vars(vars, desaturate_vars);
     }
 
-    char* fragSource = template(vars, program->fragmentSource,
+    char* fragSource = replace_vars(vars, program->fragmentSource,
             fragmentPrefix);
 
-    char* vertSource = template(vars, program->vertexSource, "");
+    char* vertSource = replace_vars(vars, program->vertexSource, "");
 
     struct shader_handles* h = &program->handles[variant];
 
@@ -533,6 +538,7 @@ loadProgram(struct shader* program, unsigned int variant) {
 
     free(vertSource);
     free(fragSource);
+    if (effect_body) free(effect_body);
 }
 
 static
@@ -611,9 +617,10 @@ shader_new(const char* vertexSource, const char* fragSource) {
 }
 
 struct material*
-render_api_material_new(struct shader* shader) {
+render_api_material_new(struct shader* shader, struct l2d_effect* effect) {
     struct material* material = malloc(sizeof(struct material));
     material->shader = shader;
+    material->effect = effect;
     material->imageUniformCount = 0;
     material->podUniforms = NULL;
     material->attributes = NULL;
@@ -703,7 +710,7 @@ render_api_material_use(struct material* m, unsigned int shader_variant,
 
     *sh = &m->shader->handles[shader_variant];
     if ((*sh)->id == 0) {
-        loadProgram(m->shader, shader_variant);
+        loadProgram(m->shader, shader_variant, m->effect);
     }
     *mh = &m->handles[shader_variant];
     if ((*mh)->invalid) {

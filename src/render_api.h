@@ -108,7 +108,7 @@ struct shader*
 render_api_load_shader(enum shader_type);
 
 struct material*
-render_api_material_new(struct shader*);
+render_api_material_new(struct shader*, struct l2d_effect* effect);
 
 /*
 void

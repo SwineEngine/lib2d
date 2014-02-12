@@ -112,6 +112,14 @@ class Sprite:
             Sprite.__refs.remove(self)
 
     @property
+    def effect(self):
+        return self._effect
+    @effect.setter
+    def effect(self, e):
+        self._effect = e
+        _lib.l2d_sprite_set_effect(self._ptr, e._ptr if e else None)
+
+    @property
     def parent(self):
         return self._parent
     @parent.setter
@@ -202,4 +210,39 @@ class Sprite:
     def abort_anim(self):
         _lib.l2d_sprite_abort_anim(self._ptr)
 
-__all__ = ['init', 'step', 'render', 'set_viewport', 'set_translate', 'clear', 'Sprite', 'flags']
+
+class Effect:
+    """
+    Creates an effect that can be applied to Sprites.
+
+    The first argument to all components (color_matrix, fractal_noise etc) is
+    input. The input argument is to specify which other component should be
+    used as the source color value. If -1, it will use the last added
+    component. If 0, the sprite's texture will be the input. 1 will use the
+    first added component, 2 the second etc.
+    """
+    def __init__(self):
+        self._ptr = _lib.l2d_effect_new()
+
+    def color_matrix(self, input, transform):
+        """
+        `input` See Effect documentation.
+        `transform` must be a 4x4 matrix stored flat in column major order.
+        """
+        assert len(transform) == 16
+        arr = (ctypes.c_float * 16)(*transform)
+        _lib.l2d_effect_color_matrix(self._ptr, ctypes.c_int(input), arr)
+
+    def convolve_matrix(self, input, kernel):
+        """
+        A Standard 3x3 convolution matrix.
+
+        `input` See Effect documentation.
+        `kernel` must be a 3x3 matrix stored flat in column major order.
+        """
+        assert len(kernel) == 9
+        arr = (ctypes.c_float * 9)(*kernel)
+        _lib.l2d_effect_convolve_matrix(self._ptr, ctypes.c_int(input), ctypes.byref(arr))
+
+
+__all__ = ['init', 'step', 'render', 'set_viewport', 'set_translate', 'clear', 'Sprite', 'Effect', 'flags']
