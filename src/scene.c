@@ -16,7 +16,7 @@ i_sprite_delete(struct l2d_sprite*);
 struct l2d_scene*
 l2d_scene_new(struct l2d_resources* r) {
     struct l2d_scene* scene = malloc(sizeof(struct l2d_scene));
-    scene->ir = ir_new();
+    scene->ir = ir_new(r->ib);
     scene->res = r;
     scene->sprites = NULL;
     scene->anims_tx = NULL;

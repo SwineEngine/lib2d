@@ -25,11 +25,24 @@ struct batch {
     struct attribute* attributes; //stretchy buffer
 };
 
-struct mat_cache_entry;
-struct ir {
-    struct drawer* drawerList;
+struct sort_cache {
+    struct drawer** buffer;
+    int alloc_size;
+    int drawer_count;
     bool sort_buffer_dirty;
     bool sort_order_dirty;
+};
+
+void
+init_sort_cache(struct sort_cache*);
+
+struct l2d_target;
+struct mat_cache_entry;
+struct ir {
+    struct l2d_image_bank* ib;
+    struct l2d_target* targetList;
+    struct drawer* drawerList;
+    struct sort_cache sort_cache;
     struct drawer_mask* maskList;
     int viewportWidth, viewportHeight;
     float translate[3];
@@ -48,7 +61,7 @@ struct l2d_image;
 struct material;
 
 struct ir*
-ir_new(void);
+ir_new(struct l2d_image_bank*);
 
 void
 ir_delete(struct ir*);
@@ -88,6 +101,9 @@ drawer_set_color(struct drawer*, float color[4]);
 
 void
 drawer_setMaterial(struct drawer*, struct material*);
+
+void
+drawer_set_target(struct drawer*, struct l2d_target*);
 
 void
 drawer_set_layer(struct drawer*, int layer);

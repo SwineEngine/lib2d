@@ -754,3 +754,9 @@ render_api_clear(uint32_t color) {
     }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
+
+void
+render_api_clear_f(float* c) {
+    glClearColor(c[0], c[1], c[2], c[3]);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}

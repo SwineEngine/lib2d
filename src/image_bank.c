@@ -33,6 +33,7 @@ struct l2d_image {
     struct rect texture_region;
 
     struct nine_patch* nine_patch;
+    struct l2d_target* renderTarget;
 
     bool flip_y;
     enum l2d_image_format format;
@@ -111,6 +112,7 @@ ib_image_new(struct l2d_image_bank* ib) {
     image->texture_region.r = 1;
     image->texture_region.b = 1;
     image->nine_patch = NULL;
+    image->renderTarget = NULL;
 
     image->flip_y = false;
     image->atlas_bank_entry = NULL;
@@ -370,6 +372,32 @@ ib_image_set_texture(struct l2d_image* image, struct texture* tex) {
         // decref after reasigning in case it is the same one.
         ib_texture_decref(oldTex);
     }
+}
+
+void
+ib_image_setAsRenderTarget(struct l2d_image* image,
+        struct l2d_target* target, int width, int height) {
+    image->renderTarget = target;
+
+    image->width = width;
+    image->height = height;
+
+    ib_image_set_texture(image, ib_texture_new());
+
+    struct pending_upload* u = malloc(sizeof(struct pending_upload));
+    u->clamp = true;
+
+    ib_texture_incref(image->texture);
+    u->texture = image->texture;
+
+    u->width = width;
+    u->height = height;
+    u->format = l2d_IMAGE_FORMAT_RGBA_8888;
+
+    u->data = NULL;
+
+    u->next = image->ib->pendingUploadList;
+    image->ib->pendingUploadList = u;
 }
 
 bool

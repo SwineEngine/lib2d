@@ -5,6 +5,7 @@
 #include "stretchy_buffer.h"
 #include "render_api.h"
 #include "effect.h"
+#include "target.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -79,6 +80,7 @@ struct drawer {
     float desaturate;
     float color[4];
     struct material* material;
+    struct l2d_target* target;
     int order;
     enum l2d_blend blend;
 
@@ -146,12 +148,13 @@ drawer_update_material(struct drawer* d) {
 }
 
 struct ir*
-ir_new() {
+ir_new(struct l2d_image_bank* ib) {
     struct ir* ir = (struct ir*)malloc(sizeof(struct ir));
 
+    ir->ib = ib;
+    ir->targetList = NULL;
     ir->drawerList = NULL;
-    ir->sort_buffer_dirty = false;
-    ir->sort_order_dirty = false;
+    init_sort_cache(&ir->sort_cache);
     ir->viewportWidth = 1;
     ir->viewportHeight = 1;
     ir->translate[0] = 0;
@@ -181,10 +184,22 @@ ir_new() {
 }
 
 void
+init_sort_cache(struct sort_cache* c){ 
+    c->sort_buffer_dirty = false;
+    c->sort_order_dirty = false;
+    c->buffer = NULL;
+    c->alloc_size = 0;
+    c->drawer_count = 0;
+}
+
+void
 ir_delete(struct ir* ir) {
     while (ir->drawerList != NULL) {
         drawer_delete(ir->drawerList);
     }
+
+    if (ir->sort_cache.buffer)
+        free(ir->sort_cache.buffer);
 
     // TODO delete all created shaders.
     // TODO delete all cached materials.
@@ -198,7 +213,7 @@ ir_delete(struct ir* ir) {
 
 struct drawer*
 drawer_new(struct ir* ir) {
-    ir->sort_buffer_dirty = true;
+    ir->sort_cache.sort_buffer_dirty = true;
     struct drawer* drawer =
         (struct drawer*)malloc(sizeof(struct drawer));
     drawer->ir = ir;
@@ -223,6 +238,7 @@ drawer_new(struct ir* ir) {
     drawer->color[3] = 1;
 
     drawer->material = ir->defaultMaterial;
+    drawer->target = NULL;
 
     drawer->order = 0;
 
@@ -241,7 +257,7 @@ drawer_new(struct ir* ir) {
 
 void
 drawer_delete(struct drawer* drawer) {
-    drawer->ir->sort_buffer_dirty = true;
+    drawer->ir->sort_cache.sort_buffer_dirty = true;
     *drawer->prev = drawer->next;
     if (drawer->next) {
         drawer->next->prev = drawer->prev;
@@ -259,7 +275,7 @@ struct geo_vert {
 
 void
 drawer_copy(struct drawer* dst, struct drawer const* src) {
-    dst->ir->sort_order_dirty = true;
+    dst->ir->sort_cache.sort_order_dirty = true;
     site_copy(&dst->site, &src->site);
     dst->image = src->image;
     if (dst->image)
@@ -267,6 +283,7 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
     dst->alpha = src->alpha;
     dst->desaturate = src->desaturate;
     dst->material = src->material;
+    dst->target = src->target;
     dst->order = src->order;
     dst->mask = src->mask;
 
@@ -289,7 +306,7 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
 
 void
 drawer_set_effect(struct drawer* d, struct l2d_effect* e) {
-    d->ir->sort_order_dirty = true;
+    d->ir->sort_cache.sort_order_dirty = true;
     d->effect = e;
     drawer_update_material(d);
 }
@@ -382,7 +399,7 @@ drawer_set_site(struct drawer* drawer, struct site const* site) {
 void
 drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
     if (image == drawer->image) return;
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     if (drawer->image)
         ib_image_decref(drawer->image);
     drawer->image = image;
@@ -408,7 +425,7 @@ drawer_set_color(struct drawer* drawer, float color[4]) {
 void
 drawer_setMaterial(struct drawer* drawer,
         struct material* material) {
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     if (material == NULL) {
         material = drawer->ir->defaultMaterial;
     }
@@ -416,15 +433,42 @@ drawer_setMaterial(struct drawer* drawer,
 }
 
 void
+drawer_set_target(struct drawer* drawer, struct l2d_target* target) {
+    if (target == drawer->target) return;
+    drawer->target = target;
+
+    drawer->ir->sort_cache.sort_buffer_dirty = true;
+    if (target)
+        target->sort_cache.sort_buffer_dirty = true;
+
+    // unlink from old list:
+    if (drawer->next) {
+        drawer->next->prev = drawer->prev;
+    }
+    *drawer->prev = drawer->next;
+
+    struct drawer** drawerListP =
+        target ? &target->drawerList : &drawer->ir->drawerList;
+
+    // add to new target:
+    drawer->next = *drawerListP;
+    if (drawer->next) {
+        drawer->next->prev = &drawer->next;
+    }
+    drawer->prev = drawerListP;
+    *drawerListP = drawer;
+}
+
+void
 drawer_setOrder(struct drawer* drawer, int order) {
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->order = order;
 }
 
 void
 drawer_set_clip_site(struct drawer* drawer,
         struct site const* site) {
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     if (site) {
         drawer->clip_site_set = true;
         site_copy(&drawer->clip_site, site);
@@ -435,14 +479,14 @@ drawer_set_clip_site(struct drawer* drawer,
 
 void
 drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->blend = blend;
     drawer_update_material(drawer);
 }
 
 void
 drawer_set_mask(struct drawer* drawer, struct drawer_mask* mask) {
-    drawer->ir->sort_order_dirty = true;
+    drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->mask = mask;
 }
 
@@ -795,7 +839,7 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
 
 static
 void
-batch_flush(struct ir* ir, struct batch* batch,
+batch_flush(struct batch* batch,
         struct material* material,
         struct l2d_image* image, enum l2d_blend blend,
         struct drawer_mask* mask,
@@ -894,60 +938,57 @@ batch_flush(struct ir* ir, struct batch* batch,
 
 static
 void
-drawDrawerList(struct ir* ir, struct batch* batch) {
-    int viewportWidth = ir->viewportWidth;
-    int viewportHeight = ir->viewportHeight;
-    static struct drawer** sortBuffer = NULL;
-    static int sortBufferAllocSize = 0;
-
+drawDrawerList(struct batch* batch, struct drawer* drawerList,
+        int viewportWidth, int viewportHeight, float* translate,
+        struct sort_cache* sort_cache) {
     struct matrix projection_matrix;
     matrix_identity(&projection_matrix);
     projection_matrix.m[2*4+3] = .5f/viewportWidth; // must match eyePos calc
     matrix_translate_inplace(&projection_matrix, -1.f, 1.f, 0.f);
     matrix_scale_inplace(&projection_matrix, 2.f/viewportWidth,
             -2.f/viewportHeight, 1.f);
-    matrix_translate_inplace(&projection_matrix, ir->translate[0],
-            ir->translate[1], ir->translate[2]);
+    if (translate) {
+        matrix_translate_inplace(&projection_matrix, translate[0],
+                translate[1], translate[2]);
+    }
 
-    static int drawerCount = 0;
-    if (ir->sort_buffer_dirty) {
-        ir->sort_buffer_dirty = false;
-        ir->sort_order_dirty = true;
-        drawerCount = 0;
-        for (struct drawer* drawer = ir->drawerList;
+    if (sort_cache->sort_buffer_dirty) {
+        sort_cache->sort_buffer_dirty = false;
+        sort_cache->sort_order_dirty = true;
+        sort_cache->drawer_count = 0;
+        for (struct drawer* drawer = drawerList;
                 drawer != NULL; drawer = drawer->next) {
-            if (drawerCount == sortBufferAllocSize) {
-                sortBufferAllocSize += 128;
-                sortBuffer = realloc(sortBuffer, sortBufferAllocSize*sizeof(void*));
+            if (sort_cache->drawer_count == sort_cache->alloc_size) {
+                sort_cache->alloc_size += 128;
+                sort_cache->buffer = realloc(sort_cache->buffer, sort_cache->alloc_size*sizeof(void*));
             }
-
-            sortBuffer[drawerCount++] = drawer;
+            sort_cache->buffer[sort_cache->drawer_count++] = drawer;
         }
     }
 
-    if (drawerCount == 0)
+    if (sort_cache->drawer_count == 0)
         return;
 
-    if (ir->sort_order_dirty) {
-        ir->sort_order_dirty = false;
-        qsort(sortBuffer, drawerCount, sizeof(struct drawer*),
+    if (sort_cache->sort_order_dirty) {
+        sort_cache->sort_order_dirty = false;
+        qsort(sort_cache->buffer, sort_cache->drawer_count, sizeof(struct drawer*),
             drawerSortCompare);
     }
 
-    struct material* material = sortBuffer[0]->material;
+    struct material* material = sort_cache->buffer[0]->material;
     batch_reset(batch, material);
-    struct l2d_image* image = sortBuffer[0]->image;
-    enum l2d_blend blend = sortBuffer[0]->blend;
-    struct drawer_mask* mask = sortBuffer[0]->mask;
-    bool desaturate = sortBuffer[0]->desaturate;
-    for (int i = 0; i < drawerCount; i++) {
-        struct drawer* drawer = sortBuffer[i];
+    struct l2d_image* image = sort_cache->buffer[0]->image;
+    enum l2d_blend blend = sort_cache->buffer[0]->blend;
+    struct drawer_mask* mask = sort_cache->buffer[0]->mask;
+    bool desaturate = sort_cache->buffer[0]->desaturate;
+    for (int i = 0; i < sort_cache->drawer_count; i++) {
+        struct drawer* drawer = sort_cache->buffer[i];
         if (!ib_image_same_texture(drawer->image, image)
                 || drawer->material != material
                 || drawer->blend != blend
                 || drawer->mask != mask
                 || (drawer->desaturate!=0) != desaturate) {
-            batch_flush(ir, batch, material, image, blend, mask, desaturate,
+            batch_flush(batch, material, image, blend, mask, desaturate,
                     viewportWidth, viewportHeight);
             desaturate = drawer->desaturate;
             material = drawer->material;
@@ -959,7 +1000,7 @@ drawDrawerList(struct ir* ir, struct batch* batch) {
         batch_add(batch, drawer, viewportWidth, viewportHeight,
                 &projection_matrix);
     }
-    batch_flush(ir, batch, material, image, blend, mask, desaturate,
+    batch_flush(batch, material, image, blend, mask, desaturate,
             viewportWidth, viewportHeight);
 }
 
@@ -970,8 +1011,19 @@ ir_render(struct ir* ir) {
         .indicies = ir->scratchIndicies,
         .attributes = ir->scratchAttributes,
     };
+    for (struct l2d_target* itr = ir->targetList; itr != NULL; itr=itr->next) {
+        render_api_draw_start(itr->fbo,
+                i_target_scaled_width(itr),
+                i_target_scaled_height(itr));
+        render_api_clear_f(itr->color);
+
+        drawDrawerList(&batch, itr->drawerList, itr->width, itr->height, NULL,
+                &itr->sort_cache);
+    }
     render_api_draw_start(0, ir->viewportWidth, ir->viewportHeight);
-    drawDrawerList(ir, &batch);
+    drawDrawerList(&batch, ir->drawerList,
+            ir->viewportWidth, ir->viewportHeight, ir->translate,
+            &ir->sort_cache);
 
     // write back the scratch buffer pointers, as they might have been
     // reallocated:

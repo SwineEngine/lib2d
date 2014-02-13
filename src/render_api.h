@@ -130,6 +130,9 @@ render_api_material_use(struct material* m, unsigned int shader_variant,
         int* next_texture_slot);
 
 void
-render_api_clear();
+render_api_clear(uint32_t color);
+
+void
+render_api_clear_f(float*);
 
 #endif

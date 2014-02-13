@@ -9,6 +9,7 @@
 struct texture;
 struct l2d_image_bank;
 struct l2d_image;
+struct l2d_target;
 
 struct l2d_image_bank*
 ib_new(void);
@@ -35,6 +36,10 @@ ib_image_get_texture_region(struct l2d_image*);
 void
 ib_image_set_texture(struct l2d_image*, struct texture*);
 
+void
+ib_image_setAsRenderTarget(struct l2d_image*,
+        struct l2d_target*, int width, int height);
+
 int
 image_sort_compare(struct l2d_image*, struct l2d_image*);
 
@@ -53,6 +58,8 @@ image_set_data(struct l2d_image*,
         int width, int height, enum l2d_image_format,
         void* data, uint32_t flags);
 
+void
+image_set_flip_y(struct l2d_image* image, bool flip);
 
 struct texture*
 ib_texture_new(void);
