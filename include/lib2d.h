@@ -131,6 +131,12 @@ l2d_effect_fractal_noise(struct l2d_effect*, int input,
 void
 l2d_effect_convolve_matrix(struct l2d_effect*, int input, float kernel[9]);
 
+void
+l2d_effect_erode(struct l2d_effect*, int input);
+
+void
+l2d_effect_dilate(struct l2d_effect*, int input);
+
 
 
 

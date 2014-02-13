@@ -88,6 +88,59 @@ l2d_effect_convolve_matrix(struct l2d_effect* e, int input, float k[9]) {
             k[0], k[1], k[2],
             k[3], k[4], k[5],
             k[6], k[7], k[8]);
+#undef LOOKUP
+    char* r = replace_vars(vars, w, "");
+    sbpush(e->components, r);
+}
+
+void
+l2d_effect_erode(struct l2d_effect* e, int input) {
+    char comp[16]; get_comp(e, sbcount(e->components)+1, comp);
+    char inp[16]; get_comp(e, input, inp);
+    struct template_var vars[] = {
+        {"COMP", comp},
+        {"INP_TEX", "texture"}, // TODO render targets
+        {"INP", inp},
+        {0,0}};
+
+#define LOOKUP(X, Y) "COMP = min(texture2D(INP_TEX, texCoord_v + vec2(" #X "," #Y ")*texturePixelSize), COMP);\n"
+    char* w =
+            "vec4 COMP = INP;\n"
+            LOOKUP(0,  -1)
+            LOOKUP(-1, -1)
+            LOOKUP(-1, 0)
+            LOOKUP(-1, 1)
+            LOOKUP(0,  1)
+            LOOKUP(1,  1)
+            LOOKUP(1,  0)
+            LOOKUP(1,  -1);
+#undef LOOKUP
+    char* r = replace_vars(vars, w, "");
+    sbpush(e->components, r);
+}
+
+void
+l2d_effect_dilate(struct l2d_effect* e, int input) {
+    char comp[16]; get_comp(e, sbcount(e->components)+1, comp);
+    char inp[16]; get_comp(e, input, inp);
+    struct template_var vars[] = {
+        {"COMP", comp},
+        {"INP_TEX", "texture"}, // TODO render targets
+        {"INP", inp},
+        {0,0}};
+
+#define LOOKUP(X, Y) "COMP = max(texture2D(INP_TEX, texCoord_v + vec2(" #X "," #Y ")*texturePixelSize), COMP);\n"
+    const char* w =
+            "vec4 COMP = INP;\n"
+            LOOKUP(0,  -1)
+            LOOKUP(-1, -1)
+            LOOKUP(-1, 0)
+            LOOKUP(-1, 1)
+            LOOKUP(0,  1)
+            LOOKUP(1,  1)
+            LOOKUP(1,  0)
+            LOOKUP(1,  -1);
+#undef LOOKUP
     char* r = replace_vars(vars, w, "");
     sbpush(e->components, r);
 }

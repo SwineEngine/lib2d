@@ -244,5 +244,11 @@ class Effect:
         arr = (ctypes.c_float * 9)(*kernel)
         _lib.l2d_effect_convolve_matrix(self._ptr, ctypes.c_int(input), ctypes.byref(arr))
 
+    def dilate(self, input):
+        _lib.l2d_effect_dilate(self._ptr, ctypes.c_int(input))
+
+    def erode(self, input):
+        _lib.l2d_effect_erode(self._ptr, ctypes.c_int(input))
+
 
 __all__ = ['init', 'step', 'render', 'set_viewport', 'set_translate', 'clear', 'Sprite', 'Effect', 'flags']
