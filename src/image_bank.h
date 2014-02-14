@@ -90,4 +90,7 @@ image_get_nine_patch(struct l2d_image* image);
 enum l2d_image_format
 ib_image_format(struct l2d_image*);
 
+bool
+ib_image_bind_framebuffer_texture(struct l2d_image*);
+
 #endif

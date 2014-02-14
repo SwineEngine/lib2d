@@ -17,6 +17,7 @@
 
 struct shader;
 struct material;
+struct l2d_effect_stage;
 
 struct shader_handles {
     int32_t id;
@@ -108,7 +109,7 @@ struct shader*
 render_api_load_shader(enum shader_type);
 
 struct material*
-render_api_material_new(struct shader*, struct l2d_effect* effect);
+render_api_material_new(struct shader*, struct l2d_effect_stage*);
 
 /*
 void

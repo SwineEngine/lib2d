@@ -12,7 +12,7 @@
 #define MAX_MATERIAL_IMAGE_UNIFORMS 7
 struct material {
     struct shader* shader;
-    struct l2d_effect* effect;
+    struct l2d_effect_stage* effect;
 
     struct material_image_uniform imageUniforms[MAX_MATERIAL_IMAGE_UNIFORMS];
     unsigned long imageUniformCount;
@@ -448,7 +448,7 @@ update_vars(struct template_var* dest, struct template_var const* src) {
 
 static
 void
-loadProgram(struct shader* program, unsigned int variant, struct l2d_effect* effect) {
+loadProgram(struct shader* program, unsigned int variant, struct l2d_effect_stage* stage) {
     const char* fragmentPrefix = "";
 
     struct template_var vars[] = {
@@ -465,17 +465,24 @@ loadProgram(struct shader* program, unsigned int variant, struct l2d_effect* eff
         {0,0}};
 
     char* effect_body = NULL;
-    if (effect) {
-        char* effect_assign[32];
-        sprintf(effect_assign, "gl_FragColor = e_%i;\n", sbcount(effect->components));
+    if (stage) {
+        char effect_assign[32];
+        {
+            int index = stage->components[0];
+            sprintf(effect_assign, "gl_FragColor = e_%i;\n",
+                    stage->effect->components[index].id);
+        }
         int l = strlen(effect_assign);
-        sbforeachv(const char* c, effect->components) {
-            l += strlen(c);
+        for (int i=stage->num_components-1; i>=0; i--) {
+            int index = stage->components[i];
+            l += strlen(stage->effect->components[index].source);
         }
         effect_body = malloc(l+1);
 
         int n = 0;
-        sbforeachv(const char* c, effect->components) {
+        for (int i=stage->num_components-1; i>=0; i--) {
+            int index = stage->components[i];
+            const char* c = stage->effect->components[index].source;
             int len = strlen(c);
             strcpy(effect_body+n, c);
             n += len;
@@ -617,7 +624,7 @@ shader_new(const char* vertexSource, const char* fragSource) {
 }
 
 struct material*
-render_api_material_new(struct shader* shader, struct l2d_effect* effect) {
+render_api_material_new(struct shader* shader, struct l2d_effect_stage* effect) {
     struct material* material = malloc(sizeof(struct material));
     material->shader = shader;
     material->effect = effect;

@@ -5,9 +5,6 @@
 #include "renderer.h"
 #include <stdint.h>
 
-struct l2d_postprocess;
-struct l2d_postprocess_def;
-
 void
 i_prepair_targets_before_texture(struct ir* ir);
 
@@ -63,20 +60,5 @@ l2d_target_set_dimensions(struct l2d_target*, int width, int height);
 // of the target.
 void
 l2d_target_set_scale(struct l2d_target*, float scaleWidth, float scaleHeight);
-
-
-//////////////////////
-// postprocess effects
-//////////////////////
-
-struct l2d_postprocess*
-l2d_postprocess_get(struct ir*, l2d_ident name);
-
-struct l2d_target*
-l2d_postprocess_as_target(struct l2d_postprocess*);
-
-struct l2d_postprocess_def*
-l2d_postprocess_def_new(l2d_ident name,
-        struct l2d_target* (*newCallback)(struct ir*));
 
 #endif

@@ -5,7 +5,6 @@ void
 setup(struct l2d_scene* scene) {
     // Blueprint-style effect
     struct l2d_effect* e = l2d_effect_new();
-    l2d_effect_erode(e, -1);
     float c[9] = {
         1, 1, 1,
         1,-8, 1,

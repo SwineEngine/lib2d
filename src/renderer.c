@@ -111,6 +111,36 @@ struct mat_cache_entry {
 };
 
 static
+struct l2d_target*
+drawer_resolve_stage_dep(struct ir* ir,
+        struct l2d_effect* e,
+        struct l2d_effect_stage* parent,
+        struct l2d_image* source_im) {
+    struct l2d_effect_stage* s = &e->stages[parent->stage_dep-1];
+
+    // TODO save targets so they can be cleaned up!!
+    struct l2d_target* t = l2d_target_new(ir,
+            ib_image_get_width(source_im), ib_image_get_height(source_im),
+            0);
+
+    struct drawer* d = drawer_new(ir);
+    drawer_set_image(d, source_im);
+    d->site.rect.r = ib_image_get_width(source_im);
+    d->site.rect.t = ib_image_get_height(source_im);
+    d->material = render_api_material_new(
+        render_api_load_shader(SHADER_DEFAULT), s);
+    drawer_set_target(d, t);
+
+    /* TODO
+    if (s->stage_dep) {
+        struct l2d_target* o_t = drawer_resolve_stage_dep(ir, e, s, source_im);
+    }
+    */
+
+    return t;
+}
+
+static
 void
 drawer_update_material(struct drawer* d) {
     if (d->effect == NULL) {
@@ -122,10 +152,16 @@ drawer_update_material(struct drawer* d) {
             d->material = d->ir->defaultMaterial;
         }
     } else {
-        sbforeachp(struct mat_cache_entry* e, d->ir->material_cache) {
-            if (e->effect_id == d->effect->id && e->blend == d->blend) {
-                d->material = e->material;
-                return;
+        struct l2d_effect_stage* last_stage = &sblast(d->effect->stages);
+        bool multi_stage = last_stage->stage_dep;
+
+        if (!multi_stage) {
+            // We can't cache multi-stage effects.
+            sbforeachp(struct mat_cache_entry* e, d->ir->material_cache) {
+                if (e->effect_id == d->effect->id && e->blend == d->blend) {
+                    d->material = e->material;
+                    return;
+                }
             }
         }
 
@@ -135,15 +171,29 @@ drawer_update_material(struct drawer* d) {
         } else if (d->blend == l2d_BLEND_PREMULT) {
             t = SHADER_PREMULT;
         }
-
-        // TODO cache material
         d->material = render_api_material_new(
-            render_api_load_shader(t), d->effect);
+            render_api_load_shader(t), last_stage);
 
-        struct mat_cache_entry* e = sbadd(d->ir->material_cache, 1);
-        e->effect_id = d->effect->id;
-        e->blend = d->blend;
-        e->material = d->material;
+
+        if (multi_stage) {
+            // This effect requires multiple stages.
+            // The image for this drawer will need to be set on stages sampling from root.
+            struct l2d_image* source_im = d->image;
+
+            struct l2d_target* target = drawer_resolve_stage_dep(d->ir, d->effect, last_stage, source_im);
+
+            // TODO We need to keep the source_im associated with the drawer!
+            // Maybe new drawer field?
+            d->image = target->image;
+        }
+
+        if (!multi_stage) {
+            // We can't cache multi-stage effects.
+            struct mat_cache_entry* e = sbadd(d->ir->material_cache, 1);
+            e->effect_id = d->effect->id;
+            e->blend = d->blend;
+            e->material = d->material;
+        }
     }
 }
 
@@ -228,7 +278,6 @@ drawer_new(struct ir* ir) {
     drawer->effect = NULL;
 
     site_init(&drawer->site);
-    drawer->site.x = -2.f;
 
     drawer->alpha = 1.f;
     drawer->desaturate = 0.f;
@@ -306,7 +355,9 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
 
 void
 drawer_set_effect(struct drawer* d, struct l2d_effect* e) {
+    if (e == d->effect) return;
     d->ir->sort_cache.sort_order_dirty = true;
+    l2d_effect_update_stages(e);
     d->effect = e;
     drawer_update_material(d);
 }
@@ -479,6 +530,7 @@ drawer_set_clip_site(struct drawer* drawer,
 
 void
 drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
+    if (blend == drawer->blend) return;
     drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->blend = blend;
     drawer_update_material(drawer);
@@ -1006,6 +1058,8 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
 
 void
 ir_render(struct ir* ir) {
+    i_prepair_targets_before_texture(ir);
+
     struct batch batch = {
         .verticies = ir->scratchVerticies,
         .indicies = ir->scratchIndicies,
@@ -1030,5 +1084,7 @@ ir_render(struct ir* ir) {
     ir->scratchVerticies = batch.verticies;
     ir->scratchIndicies = batch.indicies;
     ir->scratchAttributes = batch.attributes;
+
+    i_prepair_targets_after_texture(ir);
 }
 

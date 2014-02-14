@@ -1,6 +1,7 @@
 #include "target.h"
 #include "renderer.h"
 #include "image_bank.h"
+#include "gl.h"
 
 
 #include <stdlib.h>
@@ -44,14 +45,14 @@ i_prepair_targets_before_texture(struct ir* ir) {
 static
 void
 attachFBOTexture(struct l2d_target* target) {
-    /* TODO
+    // TODO abstract GL
     if (target->fbo == 0) {
         glGenFramebuffers(1, &target->fbo);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, target->fbo);
-    ib_image_bind_framebuffer_texture(target->image);
-    target->needsTextureAttached = false;
-    */
+    if (ib_image_bind_framebuffer_texture(target->image)) {
+        target->needsTextureAttached = false;
+    }
 }
 
 void
@@ -94,7 +95,6 @@ l2d_target_new(struct ir* ir, int width, int height, unsigned int flags) {
     }
 
     target->image = ib_image_new(ir->ib);
-    image_set_flip_y(target->image, true);
 
     if (flags & l2d_TARGET_MANAGE_DRAWER) {
         target->drawer = drawer_new(ir);

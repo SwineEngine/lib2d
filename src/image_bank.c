@@ -5,6 +5,7 @@
 #include "render_api.h"
 #include "atlas_bank.h"
 #include "primitives.h"
+#include "gl.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -438,4 +439,17 @@ image_get_height(struct l2d_image* image) {
 enum l2d_image_format
 ib_image_format(struct l2d_image* im) {
     return im->format;
+}
+
+bool
+ib_image_bind_framebuffer_texture(struct l2d_image* image) {
+    // TODO abstract GL
+    assert(image->texture);
+    if (image->texture->native_ptr) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D, image->texture->native_ptr, 0);
+        return true;
+    } else {
+        return false;
+    }
 }
