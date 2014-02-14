@@ -118,6 +118,13 @@ drawer_resolve_stage_dep(struct ir* ir,
         struct l2d_image* source_im) {
     struct l2d_effect_stage* s = &e->stages[parent->stage_dep-1];
 
+    if (s->stage_dep) {
+        struct l2d_target* o_t = drawer_resolve_stage_dep(ir, e, s, source_im);
+        source_im = o_t->image;
+        // Need o_t->image to have it's texture created as a render target.
+        i_prepair_targets_before_texture(ir);
+    }
+
     // TODO save targets so they can be cleaned up!!
     struct l2d_target* t = l2d_target_new(ir,
             ib_image_get_width(source_im), ib_image_get_height(source_im),
@@ -131,11 +138,6 @@ drawer_resolve_stage_dep(struct ir* ir,
         render_api_load_shader(SHADER_DEFAULT), s);
     drawer_set_target(d, t);
 
-    /* TODO
-    if (s->stage_dep) {
-        struct l2d_target* o_t = drawer_resolve_stage_dep(ir, e, s, source_im);
-    }
-    */
 
     return t;
 }

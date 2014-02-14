@@ -4,12 +4,12 @@
 void
 setup(struct l2d_scene* scene) {
     struct l2d_effect* e = l2d_effect_new();
-    /*
     // Blueprint-style effect
     float c[9] = {
         1, 1, 1,
         1,-8, 1,
         1, 1, 1};
+    /*
     l2d_effect_convolve_matrix(e, -1, c);
     // Remember, matrices are column major order.
     float t[16] = {
@@ -22,6 +22,7 @@ setup(struct l2d_scene* scene) {
 
     l2d_effect_blur_h(e, -1);
     l2d_effect_blur_v(e, -1);
+    l2d_effect_convolve_matrix(e, -1, c);
 
     struct l2d_sprite* s = l2d_sprite_new(scene,
             l2d_ident_from_str("effect.png"),
