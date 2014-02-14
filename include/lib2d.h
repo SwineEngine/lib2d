@@ -137,6 +137,12 @@ l2d_effect_erode(struct l2d_effect*, int input);
 void
 l2d_effect_dilate(struct l2d_effect*, int input);
 
+void
+l2d_effect_blur_v(struct l2d_effect*, int input);
+
+void
+l2d_effect_blur_h(struct l2d_effect*, int input);
+
 
 
 

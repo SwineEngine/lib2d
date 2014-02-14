@@ -300,85 +300,6 @@ static const char* singleChannelFragmentSource =
         "DESATURATE_FRAGMENT_BODY"
         "}\n";
 
-static const char* blurVertexSource =
-        "attribute vec4 position;\n"
-        "attribute vec2 texCoord;\n"
-        "attribute vec4 miscAttrib;\n"
-        "varying vec2 texCoord_v;\n"
-        "varying float alpha_v;\n"
-        "MASK_VERTEX_HEAD"
-        "DESATURATE_VERTEX_HEAD"
-        "void main() {\n"
-        "    texCoord_v = vec2(texCoord.x, 1.-texCoord.y);\n"
-        "    gl_Position = position;\n"
-        "MASK_VERTEX_BODY"
-        "DESATURATE_VERTEX_BODY"
-        "}\n";
-static const char* fragmentSourceH =
-#ifdef GLES
-        "precision mediump float;\n"
-#endif
-        "varying vec2 texCoord_v;\n"
-        "uniform sampler2D texture;\n"
-        "uniform vec2 texturePixelSize;\n"
-        "void main() {\n"
-        "    vec4 color = vec4(0.,0.,0.,0.);\n"
-#define S(OFFSET, WEIGHT) "color += texture2D(texture, texCoord_v+"\
-            "vec2(texturePixelSize.x*" #OFFSET ", 0.))*" #WEIGHT ";\n"
-        S(-4.0,0.027630550638898826)
-        S(-3.0,0.0662822452863612)
-        S(-2.0,0.1238315368057753)
-        S(-1.0,0.18017382291138087)
-        S(0.0,0.20416368871516752)
-        S(1.0,0.18017382291138087)
-        S(2.0,0.1238315368057753)
-        S(3.0,0.0662822452863612)
-        S(4.0,0.027630550638898826)
-#undef S
-        "    gl_FragColor = color;\n"
-        "}\n";
-static const char* fragmentSourceV =
-#ifdef GLES
-        "precision mediump float;\n"
-#endif
-        "varying vec2 texCoord_v;\n"
-        "uniform sampler2D texture;\n"
-        "uniform vec2 texturePixelSize;\n"
-        "void main() {\n"
-        "    vec4 color = vec4(0.,0.,0.,0.);\n"
-#define S(OFFSET, WEIGHT) "color += texture2D(texture, texCoord_v+"\
-            "vec2(0., texturePixelSize.y*" #OFFSET "))*" #WEIGHT ";\n"
-        S(-4.0,0.027630550638898826)
-        S(-3.0,0.0662822452863612)
-        S(-2.0,0.1238315368057753)
-        S(-1.0,0.18017382291138087)
-        S(0.0,0.20416368871516752)
-        S(1.0,0.18017382291138087)
-        S(2.0,0.1238315368057753)
-        S(3.0,0.0662822452863612)
-        S(4.0,0.027630550638898826)
-#undef S
-        "    gl_FragColor = color;\n"
-        "}\n";
-
-static const char* fragmentSourceUpsample =
-#ifdef GLES
-        "precision mediump float;\n"
-#endif
-        "varying vec2 texCoord_v;\n"
-        "varying float alpha_v;\n"
-        "uniform sampler2D texture;\n"
-        "uniform vec2 texturePixelSize;\n"
-        "MASK_FRAGMENT_HEAD"
-        "DESATURATE_VERTEX_HEAD"
-        "void main() {\n"
-        "    gl_FragColor = texture2D(texture, texCoord_v);\n"
-        "MASK_FRAGMENT_BODY"
-        "DESATURATE_FRAGMENT_BODY"
-        "}\n";
-
-
-
 
 static struct template_var mask_vars[] = {
     {"MASK_VERTEX_HEAD",
@@ -737,12 +658,6 @@ render_api_load_shader(enum shader_type t) {
         return shader_new(defaultVertexSource, premultFragmentSource);
     case SHADER_SINGLE_CHANNEL:
         return shader_new(defaultVertexSource, singleChannelFragmentSource);
-    case SHADER_BLUR_H:
-        return shader_new(blurVertexSource, fragmentSourceH);
-    case SHADER_BLUR_V:
-        return shader_new(blurVertexSource, fragmentSourceV);
-    case SHADER_UPSAMPLE:
-        return shader_new(blurVertexSource, fragmentSourceUpsample);
     default:
         assert(false);
     }

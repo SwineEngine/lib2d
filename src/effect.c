@@ -248,3 +248,62 @@ l2d_effect_dilate(struct l2d_effect* e, int input) {
     c->source = replace_vars(vars, w, "");
 }
 
+void
+l2d_effect_blur_v(struct l2d_effect* e, int input) {
+    input = map_input(e, input);
+    char comp[16];
+    struct l2d_effect_component* c = new_comp(e, input, comp);
+    char target[16]; get_target(e, input, target);
+    struct template_var vars[] = {
+        {"COMP", comp},
+        {"INP_TEX", target},
+        {"INP", "tex"},
+        {0,0}};
+
+    const char* w =
+            "// vertical blur\n"
+            "vec4 COMP = vec4(0.0);\n"
+#define S(OFFSET, WEIGHT) "COMP += texture2D(texture, texCoord_v+"\
+            "vec2(0., texturePixelSize.y*" #OFFSET "))*" #WEIGHT ";\n"
+        S(-4.0,0.027630550638898826)
+        S(-3.0,0.0662822452863612)
+        S(-2.0,0.1238315368057753)
+        S(-1.0,0.18017382291138087)
+        S(0.0,0.20416368871516752)
+        S(1.0,0.18017382291138087)
+        S(2.0,0.1238315368057753)
+        S(3.0,0.0662822452863612)
+        S(4.0,0.027630550638898826);
+#undef S
+    c->source = replace_vars(vars, w, "");
+}
+
+void
+l2d_effect_blur_h(struct l2d_effect* e, int input) {
+    input = map_input(e, input);
+    char comp[16];
+    struct l2d_effect_component* c = new_comp(e, input, comp);
+    char target[16]; get_target(e, input, target);
+    struct template_var vars[] = {
+        {"COMP", comp},
+        {"INP_TEX", target},
+        {"INP", "tex"},
+        {0,0}};
+
+    const char* w =
+            "// horizontal blur\n"
+            "vec4 COMP = vec4(0.0);\n"
+#define S(OFFSET, WEIGHT) "COMP += texture2D(texture, texCoord_v+"\
+            "vec2(texturePixelSize.x*" #OFFSET ", 0.))*" #WEIGHT ";\n"
+        S(-4.0,0.027630550638898826)
+        S(-3.0,0.0662822452863612)
+        S(-2.0,0.1238315368057753)
+        S(-1.0,0.18017382291138087)
+        S(0.0,0.20416368871516752)
+        S(1.0,0.18017382291138087)
+        S(2.0,0.1238315368057753)
+        S(3.0,0.0662822452863612)
+        S(4.0,0.027630550638898826);
+#undef S
+    c->source = replace_vars(vars, w, "");
+}

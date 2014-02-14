@@ -3,8 +3,9 @@
 
 void
 setup(struct l2d_scene* scene) {
-    // Blueprint-style effect
     struct l2d_effect* e = l2d_effect_new();
+    /*
+    // Blueprint-style effect
     float c[9] = {
         1, 1, 1,
         1,-8, 1,
@@ -17,6 +18,10 @@ setup(struct l2d_scene* scene) {
         -.05, -.05, 0, 0,
         1,1,1,1};
     l2d_effect_color_matrix(e, -1, t);
+    */
+
+    l2d_effect_blur_h(e, -1);
+    l2d_effect_blur_v(e, -1);
 
     struct l2d_sprite* s = l2d_sprite_new(scene,
             l2d_ident_from_str("effect.png"),
