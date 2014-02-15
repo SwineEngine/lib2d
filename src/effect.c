@@ -47,13 +47,14 @@ get_target(struct l2d_effect* e, int input, char* r) {
 
 static
 struct l2d_effect_component*
-new_comp(struct l2d_effect* e, int input, char* name) {
+new_comp(struct l2d_effect* e, int input, int input2, char* name) {
     assert(input > -1);
     int id = sbcount(e->components)+1;
     get_comp(e, id, name);
     struct l2d_effect_component* c = sbadd(e->components, 1);
     c->id = id;
-    c->input = input;
+    c->inputs[0] = input;
+    c->inputs[1] = input2;
     c->source = NULL;
     c->stage_end = false;
     c->stage_i = -1;
@@ -100,21 +101,25 @@ l2d_effect_update_stages(struct l2d_effect* e) {
             s->components[0] = j;
             c->stage_i = stage_i;
             s->num_components = 1;
-            struct l2d_effect_component* itr = c;
-            while (itr->input) {
-                int i = itr->input-1;
-                assert(i>=0 && i<sbcount(e->components));
-                itr = &e->components[i];
-                if (itr->stage_end) {
-                    // We temp store which component instead of stage since we
-                    // don't know which stage it will be in yet.
-                    s->stage_dep = i;
-                    break;
-                } else {
-                    s->components[s->num_components] = i;
-                    s->num_components ++;
-                    itr->stage_i = stage_i;
-                    assert(s->num_components < 32);
+            int num = (c->inputs[0] == c->inputs[1]) ? 1 : 2;
+            // TODO handle two stage inputs!
+            for (int k=0; k<num; k++) {
+                struct l2d_effect_component* itr = c;
+                while (itr->inputs[k]) {
+                    int i = itr->inputs[k]-1;
+                    assert(i>=0 && i<sbcount(e->components));
+                    itr = &e->components[i];
+                    if (itr->stage_end) {
+                        // We temp store which component instead of stage since we
+                        // don't know which stage it will be in yet.
+                        s->stage_dep = i;
+                        break;
+                    } else {
+                        s->components[s->num_components] = i;
+                        s->num_components ++;
+                        itr->stage_i = stage_i;
+                        assert(s->num_components < 32);
+                    }
                 }
             }
         }
@@ -135,7 +140,7 @@ void
 l2d_effect_color_matrix(struct l2d_effect* e, int input, float t[16]) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
     char inp[16]; get_comp(e, input, inp);
 
     char w[2048];
@@ -160,7 +165,7 @@ void
 l2d_effect_convolve_matrix(struct l2d_effect* e, int input, float k[9]) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
 
     char target[16]; get_target(e, input, target);
     struct template_var vars[] = {
@@ -196,7 +201,7 @@ void
 l2d_effect_erode(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
     char target[16]; get_target(e, input, target);
     struct template_var vars[] = {
         {"COMP", comp},
@@ -224,7 +229,7 @@ void
 l2d_effect_dilate(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
     char target[16]; get_target(e, input, target);
     struct template_var vars[] = {
         {"COMP", comp},
@@ -252,7 +257,7 @@ void
 l2d_effect_blur_v(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
     char target[16]; get_target(e, input, target);
     struct template_var vars[] = {
         {"COMP", comp},
@@ -282,7 +287,7 @@ void
 l2d_effect_blur_h(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
-    struct l2d_effect_component* c = new_comp(e, input, comp);
+    struct l2d_effect_component* c = new_comp(e, input, input, comp);
     char target[16]; get_target(e, input, target);
     struct template_var vars[] = {
         {"COMP", comp},
@@ -305,5 +310,30 @@ l2d_effect_blur_h(struct l2d_effect* e, int input) {
         S(3.0,0.0662822452863612)
         S(4.0,0.027630550638898826);
 #undef S
+    c->source = replace_vars(vars, w, "");
+}
+
+void
+l2d_effect_blend(struct l2d_effect* e, int input, int input2,
+        enum l2d_effect_blend mode) {
+    input = map_input(e, input);
+    input2 = map_input(e, input2);
+    char comp[16];
+    struct l2d_effect_component* c = new_comp(e, input, input2, comp);
+    char inp[16]; get_comp(e, input, inp);
+    char inp2[16]; get_comp(e, input2, inp2);
+    struct template_var vars[] = {
+        {"COMP", comp},
+        {"INP2", inp2},
+        {"INP", inp},
+        {0,0}};
+    const char* w;
+    switch (mode)  {
+        case l2d_EFFECT_BLEND_MULT:
+            w = "// blend mult\nvec4 COMP = INP * INP2;\n";
+            break;
+        default:
+            assert(false);
+    }
     c->source = replace_vars(vars, w, "");
 }

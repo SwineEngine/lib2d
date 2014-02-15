@@ -5,7 +5,7 @@
 
 struct l2d_effect_component {
     int id; // shader source will be e_`id`
-    int input;
+    int inputs[2];
     char* source;
     int stage_i; // Used when updating stages
     bool stage_end;

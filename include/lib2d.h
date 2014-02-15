@@ -113,6 +113,10 @@ l2d_set_image_data(struct l2d_scene*, l2d_ident image,
  */
 struct l2d_effect;
 
+enum l2d_effect_blend {
+    l2d_EFFECT_BLEND_MULT,
+};
+
 struct l2d_effect*
 l2d_effect_new();
 
@@ -142,6 +146,10 @@ l2d_effect_blur_v(struct l2d_effect*, int input);
 
 void
 l2d_effect_blur_h(struct l2d_effect*, int input);
+
+void
+l2d_effect_blend(struct l2d_effect*, int input, int input2,
+        enum l2d_effect_blend);
 
 
 
