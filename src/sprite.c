@@ -8,18 +8,38 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+struct sequence_frame {
+    struct l2d_image* image;
+    float duration;
+};
+
+struct sequence {
+    struct sequence_frame* frames; // stretchy_buffer
+};
+
 struct l2d_sprite {
     struct l2d_scene* scene;
     struct l2d_sprite* parent;
     struct l2d_sprite** children; // stretchy_buffer
     struct site site;
+    uint32_t flags;
     struct drawer* drawer;
+    struct l2d_image* image;
     float rot;
     struct l2d_anim* anims_x; // linked list
     struct l2d_anim* anims_y; // linked list
     struct l2d_anim* anims_scale; // linked list
     struct l2d_anim* anims_rot; // linked list
     struct l2d_anim* anims_r, *anims_g, *anims_b, *anims_a; // linked list
+
+    // TODO separate out?
+    struct sequence* sequences; // stretchy_buffer
+    struct sequence* playing_sequence;
+    int current_frame;
+    float next_frame_in;
+    uint32_t sequence_flags;
+    float sequence_speed;
+
     float color[4];
     l2d_event_cb on_click;
     void* on_click_userdata;
@@ -36,6 +56,7 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->parent = NULL;
     s->children = NULL;
     site_init(&s->site);
+    s->flags = flags;
     s->drawer = drawer_new(scene->ir);
     sbpush(scene->sprites, s);
 
@@ -51,6 +72,8 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
         drawer_set_image(s->drawer, im);
         l2d_sprite_set_size(s, 64, 64, flags);
     }
+    s->image = im;
+    ib_image_incref(s->image);
     s->rot = 0;
 
     s->anims_x = NULL;
@@ -61,6 +84,9 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->anims_g = NULL;
     s->anims_b = NULL;
     s->anims_a = NULL;
+    s->sequences = NULL;
+    s->playing_sequence = NULL;
+    s->sequence_flags = 0;
     s->color[0] = 1;
     s->color[1] = 1;
     s->color[2] = 1;
@@ -84,6 +110,16 @@ i_sprite_delete(struct l2d_sprite* s) {
     if (s->parent) {
         l2d_sprite_set_parent(s, NULL);
     }
+
+    sbforeachp(struct sequence* sequence, s->sequences) {
+        sbforeachp(struct sequence_frame* f, sequence->frames) {
+            ib_image_decref(f->image);
+        }
+        sbfree(sequence->frames);
+    }
+    sbfree(s->sequences);
+
+    ib_image_decref(s->image);
     sbfree(s->children);
     drawer_delete(s->drawer);
     l2d_sprite_abort_anim(s);
@@ -121,6 +157,7 @@ l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
 
 void
 l2d_sprite_set_size(struct l2d_sprite* s, int w, int h, uint32_t flags) {
+    s->flags = flags;
     s->site.rect.l = -w/2;
     s->site.rect.t = -h/2;
     s->site.rect.r = w/2;
@@ -172,8 +209,39 @@ static
 void
 i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool parent_changed) {
     struct site* pass_down = &s->site;
-
     bool u_site = s->has_new_parent;
+
+    if (s->playing_sequence) {
+        s->next_frame_in -= dt*s->sequence_speed;
+        if (s->next_frame_in <= 0) {
+            s->current_frame ++;
+            bool end_reached = (s->current_frame >= sbcount(s->playing_sequence->frames));
+
+            if (end_reached) {
+                if (s->sequence_flags & (l2d_ANIM_REPEAT|l2d_ANIM_EXTRAPOLATE)) {
+                    s->current_frame = 0;
+                    end_reached = false;
+                } else if (s->sequence_flags & l2d_ANIM_REVERSE) {
+                    // TODO reverse animation (for now we're treating it as a repeat)
+                    s->current_frame = 0;
+                    end_reached = false;
+                }
+            }
+
+            struct l2d_image* im = s->image;
+            if (end_reached) {
+                s->playing_sequence = NULL;
+            } else {
+                s->next_frame_in = s->playing_sequence->frames[s->current_frame].duration;
+                im = s->playing_sequence->frames[s->current_frame].image;
+            }
+            drawer_set_image(s->drawer, im);
+            l2d_sprite_set_size(s, ib_image_get_width(im),
+                    ib_image_get_height(im), s->flags);
+            u_site = true;
+        }
+    }
+
     s->has_new_parent = false;
     u_site |= l2d_anim_step(&s->anims_rot, dt, &s->rot);
     if (u_site)
@@ -308,3 +376,63 @@ l2d_sprite_abort_anim(struct l2d_sprite* s) {
     l2d_anim_release_all(&s->anims_a);
 }
 
+
+int
+l2d_sprite_new_sequence(struct l2d_sprite* s) {
+    struct sequence* sequence = sbadd(s->sequences, 1);
+    sequence->frames = NULL;
+    return sbcount(s->sequences) - 1;
+}
+
+static
+struct sequence*
+get_sequence(struct l2d_sprite* s, int i) {
+    if (i < 0 || i >= sbcount(s->sequences)) {
+        printf("Invalid sequence %d\n", i);
+    }
+    return &s->sequences[i];
+}
+
+void
+l2d_sprite_sequence_add_frame(struct l2d_sprite* s, int sequence,
+        l2d_ident image, float duration) {
+    struct sequence* se = get_sequence(s, sequence);
+    struct sequence_frame* f = sbadd(se->frames, 1);
+    f->duration = duration;
+    f->image = NULL;
+    if (image) {
+        f->image = l2d_resources_load_image(s->scene->res, image);
+        ib_image_incref(f->image);
+    }
+    if (!f->image) {
+        printf("Invalid image from frame \"%s\"\n", l2d_ident_as_char(image));
+    }
+}
+
+void
+l2d_sprite_sequence_play(struct l2d_sprite* s, int sequence,
+        int start_frame, float speed_multiplier, uint32_t anim_flags) {
+    struct sequence* se = get_sequence(s, sequence);
+    if (start_frame < 0 || start_frame >= sbcount(se->frames)) {
+        if (sbcount(se->frames) == 0) {
+            printf("Sequence %d has no frames!\n", sequence);
+            return;
+        } else {
+            printf("Invalid start frame %d\n", start_frame);
+            start_frame = -1;
+        }
+    }
+    s->playing_sequence = se;
+    s->current_frame = start_frame-1;
+    s->next_frame_in = 0;
+    s->sequence_flags = anim_flags;
+    s->sequence_speed = speed_multiplier;
+}
+
+void
+l2d_sprite_sequence_stop(struct l2d_sprite* s) {
+    if (!s->playing_sequence) return;
+    s->current_frame = sbcount(s->playing_sequence->frames)-1;
+    s->sequence_flags = 0;
+    s->next_frame_in = 0;
+}

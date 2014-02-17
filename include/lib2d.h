@@ -153,6 +153,10 @@ l2d_effect_blend(struct l2d_effect*, int input, int input2,
 
 
 
+/**
+ * Sprite
+ */
+
 
 struct l2d_scene;
 struct l2d_sprite;
@@ -218,5 +222,20 @@ l2d_sprite_step(struct l2d_sprite*, float dt);
 
 void
 l2d_sprite_abort_anim(struct l2d_sprite*);
+
+
+int
+l2d_sprite_new_sequence(struct l2d_sprite*);
+
+void
+l2d_sprite_sequence_add_frame(struct l2d_sprite*, int sequence,
+        l2d_ident image, float duration);
+
+void
+l2d_sprite_sequence_play(struct l2d_sprite*, int sequence,
+        int start_frame, float speed_multiplier, uint32_t anim_flags);
+
+void
+l2d_sprite_sequence_stop(struct l2d_sprite*);
 
 #endif

@@ -84,6 +84,25 @@ def feed_click(x, y, button=1):
     return _lib.l2d_scene_feed_click(_scene, ctypes.c_float(x),
             ctypes.c_float(y), int(button))
 
+
+class Sequence:
+    def __init__(self, sprite_ptr, index):
+        self._ptr = sprite_ptr
+        self._index = index
+
+    def play(self, start_frame=0, speed_multiplier=1, flags=None):
+        _lib.l2d_sprite_sequence_play(self._ptr, self._index,
+                int(start_frame), ctypes.c_float(speed_multiplier), flags)
+
+    def add_frame(self, image, duration):
+        ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
+        _lib.l2d_sprite_sequence_add_frame(self._ptr, self._index,
+                ident, ctypes.c_float(duration))
+
+    def stop(self):
+        _lib.l2d_sprite_sequence_stop(self._ptr)
+
+
 class Sprite:
     # Make sure sprites are never GC'd before they are destroyed (b/c callbacks)
     __refs = set()
@@ -95,21 +114,22 @@ class Sprite:
         self._on_click = None
         self._on_anim_end = None
         self._parent = None
+        self.sequences = {}
         if x or y:
             self.xy(x,y)
 
     def destroy(self, fade_out_duration=0):
+        def cb():
+            _lib.l2d_sprite_delete(self._ptr)
+            Sprite.__refs.remove(self)
+            self._ptr = 0
+            for s in self.sequences.values():
+                s._ptr = 0
         if fade_out_duration > 0.000001:
             self.a(0, fade_out_duration)
-            def cb():
-                _lib.l2d_sprite_delete(self._ptr)
-                Sprite.__refs.remove(self)
-                self._ptr = 0
             self.on_anim_end = cb
         else:
-            _lib.l2d_sprite_delete(self._ptr)
-            self._ptr = 0
-            Sprite.__refs.remove(self)
+            cb()
 
     @property
     def effect(self):
@@ -209,6 +229,11 @@ class Sprite:
 
     def abort_anim(self):
         _lib.l2d_sprite_abort_anim(self._ptr)
+
+    def new_sequence(self, name):
+        s = self.sequences[name] = Sequence(self._ptr,
+                _lib.l2d_sprite_new_sequence(self._ptr))
+        return s
 
 
 class Effect:
