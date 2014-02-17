@@ -452,13 +452,15 @@ drawer_set_site(struct drawer* drawer, struct site const* site) {
 void
 drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
     if (image == drawer->image) return;
-    drawer->ir->sort_cache.sort_order_dirty = true;
     if (drawer->image)
         ib_image_decref(drawer->image);
     drawer->image = image;
     if (drawer->image)
         ib_image_incref(drawer->image);
     drawer_update_material(drawer);
+
+    if (!drawer->image || !ib_image_same_texture(image, drawer->image))
+        drawer->ir->sort_cache.sort_order_dirty = true;
 }
 
 void
