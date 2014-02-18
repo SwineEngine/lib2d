@@ -77,7 +77,7 @@ render_api_texture_upload(struct render_api_upload_info* u) {
         glTexParameteri(type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
     glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     GLenum glformat = GL_RGBA;
     GLenum gltype = GL_UNSIGNED_BYTE;
@@ -293,7 +293,7 @@ static const char* singleChannelFragmentSource =
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
         "void main() {\n"
-        "    vec4 tex = texture2D(texture, texCoord_v).a;\n"
+        "    vec4 tex = vec4(1.0, 1.0, 1.0, texture2D(texture, texCoord_v).a);\n"
         "EFFECT_FRAGMENT_BODY"
         "    gl_FragColor = gl_FragColor*color_v*alpha_v;\n"
         "MASK_FRAGMENT_BODY"
