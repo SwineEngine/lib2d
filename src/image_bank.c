@@ -33,7 +33,7 @@ struct l2d_image {
     struct texture* texture;
     struct rect texture_region;
 
-    struct nine_patch* nine_patch;
+    struct l2d_nine_patch* nine_patch;
     struct l2d_target* renderTarget;
 
     bool flip_y;
@@ -296,22 +296,16 @@ image_set_data(struct l2d_image* image,
     uint8_t* use_data = (uint8_t*)data;
     if ((flags & l2d_IMAGE_N_PATCH) && width >= 3 && height >= 3) {
         uint8_t* p = (uint8_t*)data;
-        bool transparent = p[3] == 0;
-        if (transparent || (p[0] == 0xff && p[1] == 0xff && p[2] == 0xff &&
-                    p[3] == 0xff)) {
-            image_set_nine_patch(image, nine_patch_parse(p,
-                        bytesPerPixel, width, height));
-            width -= 2;
-            height -= 2;
-            use_data = (void*)malloc(width*height*bytesPerPixel);
-            int pitch = width*bytesPerPixel;
-            for (int y=0; y<height; y++) {
-                memcpy((uint8_t*)use_data + y*pitch,
-                        p + bytesPerPixel + (y+1)*bytesPerPixel*(width+2),
-                        pitch);
-            }
-        } else {
-            printf("Not a valid n-patch!\n");
+        l2d_image_set_nine_patch(image, l2d_nine_patch_parse(p,
+                    bytesPerPixel, width, height));
+        width -= 2;
+        height -= 2;
+        use_data = (void*)malloc(width*height*bytesPerPixel);
+        int pitch = width*bytesPerPixel;
+        for (int y=0; y<height; y++) {
+            memcpy((uint8_t*)use_data + y*pitch,
+                    p + bytesPerPixel + (y+1)*bytesPerPixel*(width+2),
+                    pitch);
         }
     }
 
@@ -338,13 +332,13 @@ image_set_data(struct l2d_image* image,
 }
 
 void
-image_set_nine_patch(struct l2d_image* image,
-        struct nine_patch* patch) {
+l2d_image_set_nine_patch(struct l2d_image* image,
+        struct l2d_nine_patch* patch) {
     image->nine_patch = patch;
 }
 
-struct nine_patch*
-image_get_nine_patch(struct l2d_image* image) {
+struct l2d_nine_patch*
+l2d_image_get_nine_patch(struct l2d_image* image) {
     return image->nine_patch;
 }
 

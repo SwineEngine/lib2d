@@ -77,14 +77,14 @@ texture_set_image_data(struct l2d_image_bank*, struct texture*, int width, int h
 bool
 ib_image_same_texture(struct l2d_image* lhs, struct l2d_image* rhs);
 
-struct nine_patch;
+struct l2d_nine_patch;
 
 void
-image_set_nine_patch(struct l2d_image* image,
-        struct nine_patch* patch);
+l2d_image_set_nine_patch(struct l2d_image* image,
+        struct l2d_nine_patch* patch);
 
-struct nine_patch*
-image_get_nine_patch(struct l2d_image* image);
+struct l2d_nine_patch*
+l2d_image_get_nine_patch(struct l2d_image* image);
 
 
 enum l2d_image_format

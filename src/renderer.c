@@ -767,13 +767,13 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
     int vertexCount;
     int indexCount;
 
-    struct nine_patch* nine_patch = image_get_nine_patch(d->image);
+    struct l2d_nine_patch* nine_patch = l2d_image_get_nine_patch(d->image);
     if (nine_patch) {
         drawer_clear_geo(d);
         struct build_params params = {.image=d->image, .geoVerticies=d->geoVerticies,
             .geoIndicies=d->geoIndicies, .bounds_width=width, .bounds_height=height};
         // TODO cache built nine patch
-        nine_patch_build_geo(&params);
+        l2d_nine_patch_build_geo(&params);
         d->geoVerticies = params.geoVerticies;
         d->geoIndicies = params.geoIndicies;
     }

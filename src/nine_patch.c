@@ -19,7 +19,7 @@ static const unsigned short g3x3Indices[] = {
     10, 15, 11, 10, 14, 15
 };
 
-struct nine_patch {
+struct l2d_nine_patch {
     int8_t wasDeserialized;
     uint8_t numXDivs;
     uint8_t numYDivs;
@@ -32,7 +32,7 @@ struct nine_patch {
 };
 
 void
-nine_patch_deserialize(const void* inData, struct nine_patch* outData) {
+l2d_nine_patch_deserialize(const void* inData, struct l2d_nine_patch* outData) {
     char* patch = (char*) inData;
     if (inData != outData) {
         // copy  wasDeserialized, numXDivs, numYDivs, numColors
@@ -41,7 +41,7 @@ nine_patch_deserialize(const void* inData, struct nine_patch* outData) {
         memcpy(&outData->paddingLeft, patch + 12, 32);
     }
     char* data = (char*)outData;
-    data += sizeof(struct nine_patch);
+    data += sizeof(struct l2d_nine_patch);
     outData->xDivs = (int32_t*) data;
 
     data += outData->numXDivs * sizeof(int32_t);
@@ -103,7 +103,7 @@ static
 void
 fillRow(struct geo_vert* verts,
         const float vy, const float ty,
-        const size_t bounds_width, const int32_t xDivs[], int numXDivs,
+        const int bounds_width, const int32_t xDivs[], int numXDivs,
         const float stretchX, int width) {
 #define SET(X, Y, U, V) \
     verts->x = (float)X;\
@@ -128,24 +128,10 @@ fillRow(struct geo_vert* verts,
 
 
 void
-nine_patch_build_geo(struct build_params* params) {
-    struct nine_patch* patch = image_get_nine_patch(params->image);
+l2d_nine_patch_build_geo(struct build_params* params) {
+    struct l2d_nine_patch* patch = l2d_image_get_nine_patch(params->image);
     float width = ib_image_get_width(params->image);
     float height = ib_image_get_height(params->image);
-    
-    // check for degenerate divs (just an optimization, not required)
-    {
-        int i;
-        int zeros = 0;
-        for (i = 0; i < patch->numYDivs && patch->yDivs[i] == 0; i++) {
-            zeros += 1;
-        }
-        patch->numYDivs -= zeros;
-        patch->yDivs += zeros;
-        for (i=patch->numYDivs-1; i>=0 && patch->yDivs[i]==height; --i) {
-            patch->numYDivs -= 1;
-        }
-    }
     
     const unsigned int numXStretch = (patch->numXDivs + 1) >> 1;
     const unsigned int numYStretch = (patch->numYDivs + 1) >> 1;
@@ -224,7 +210,7 @@ enum {
 
 static
 int
-tick_type(uint8_t* p, size_t bpp, bool transparent, const char** outError) {
+tick_type(uint8_t* p, int bpp, const char** outError) {
     // TODO make sure this works for non RGBA images
     uint32_t color = p[0];
     if (bpp >= 2) color |= (p[1] << 8);
@@ -239,7 +225,7 @@ tick_type(uint8_t* p, size_t bpp, bool transparent, const char** outError) {
     uint32_t COLOR_TICK = (bpp == 4) ? 0xFF000000 : 0x0;
     uint32_t COLOR_LAYOUT_BOUNDS_TICK = (bpp == 4) ? 0xFF0000FF : 0xFF;
 
-    if (transparent) {
+    if (bpp == 4) {
         if (p[3] == 0) {
             return TICK_TYPE_NONE;
         }
@@ -259,26 +245,23 @@ tick_type(uint8_t* p, size_t bpp, bool transparent, const char** outError) {
             *outError = "Ticks in transparent frame must be black or red";
         }
         return TICK_TYPE_TICK;
-    }
+    } else {
+        if (color == COLOR_WHITE) {
+            return TICK_TYPE_NONE;
+        }
+        if (color == COLOR_TICK) {
+            return TICK_TYPE_TICK;
+        }
+        if (color == COLOR_LAYOUT_BOUNDS_TICK) {
+            return TICK_TYPE_LAYOUT_BOUNDS;
+        }
 
-    if (bpp == 4 && p[3] != 0xFF) {
-        *outError = "White frame must be a solid color (no alpha)";
-    }
-    if (color == COLOR_WHITE) {
-        return TICK_TYPE_NONE;
-    }
-    if (color == COLOR_TICK) {
+        if (p[0] != 0) {
+            *outError = "Ticks in white frame must be black or red";
+            return TICK_TYPE_NONE;
+        }
         return TICK_TYPE_TICK;
     }
-    if (color == COLOR_LAYOUT_BOUNDS_TICK) {
-        return TICK_TYPE_LAYOUT_BOUNDS;
-    }
-
-    if (p[0] != 0 || p[1] != 0 || p[2] != 0) {
-        *outError = "Ticks in white frame must be black or red";
-        return TICK_TYPE_NONE;
-    }
-    return TICK_TYPE_TICK;
 }
 
 enum {
@@ -288,7 +271,7 @@ enum {
 };
 
 static int get_horizontal_ticks(
-        uint8_t* row, int width, size_t bpp, bool transparent, bool required,
+        uint8_t* row, int width, int bpp, bool required,
         int32_t* outLeft, int32_t* outRight, const char** outError,
         uint8_t* outDivs, bool multipleAllowed)
 {
@@ -298,7 +281,7 @@ static int get_horizontal_ticks(
     bool found = false;
 
     for (i=1; i<width-1; i++) {
-        if (TICK_TYPE_TICK == tick_type(row+i*bpp, bpp, transparent, outError)) {
+        if (TICK_TYPE_TICK == tick_type(row+i*bpp, bpp, outError)) {
             if (state == TICK_START ||
                 (state == TICK_OUTSIDE_1 && multipleAllowed)) {
                 *outLeft = i-1;
@@ -337,8 +320,8 @@ static int get_horizontal_ticks(
 }
 
 static int get_vertical_ticks(
-        uint8_t* p, int offset, int width, int height, size_t bpp,
-        bool transparent, bool required, int32_t* outTop, int32_t* outBottom,
+        uint8_t* p, int offset, int width, int height, int bpp,
+        bool required, int32_t* outTop, int32_t* outBottom,
         const char** outError, uint8_t* outDivs, bool multipleAllowed)
 {
     int i;
@@ -347,7 +330,7 @@ static int get_vertical_ticks(
     bool found = false;
 
     for (i=1; i<height-1; i++) {
-        if (TICK_TYPE_TICK == tick_type(p+i*width*bpp+offset, bpp, transparent, outError)) {
+        if (TICK_TYPE_TICK == tick_type(p+i*width*bpp+offset, bpp, outError)) {
             if (state == TICK_START ||
                 (state == TICK_OUTSIDE_1 && multipleAllowed)) {
                 *outTop = i-1;
@@ -381,15 +364,14 @@ static int get_vertical_ticks(
         *outTop = -1;
         return 1;
     }
-
     return 0;
 }
 
 
-struct nine_patch*
-nine_patch_parse(uint8_t* p, int bpp, int width, int height) {
-    struct nine_patch* patch = (struct nine_patch*)malloc(
-            sizeof(struct nine_patch));
+struct l2d_nine_patch*
+l2d_nine_patch_parse(uint8_t* p, int bpp, int width, int height) {
+    struct l2d_nine_patch* patch = (struct l2d_nine_patch*)malloc(
+            sizeof(struct l2d_nine_patch));
     patch->numXDivs = 0;
     patch->numYDivs = 0;
     patch->paddingLeft = 0;
@@ -397,31 +379,59 @@ nine_patch_parse(uint8_t* p, int bpp, int width, int height) {
     patch->paddingRight = 0;
     patch->paddingBottom = 0;
     patch->colors = NULL;
+    patch->xDivs = NULL;
+    patch->yDivs = NULL;
 
-    int32_t xDivs[width];
-    int32_t yDivs[height];
+    int32_t tmpDivs[width>height?width:height];
 
-    bool transparent = p[3] == 0;
     const char *errorMsg = NULL;
     // Find left and right of sizing areas...
-    if (get_horizontal_ticks(p, width, bpp, transparent, true, &xDivs[0],
-            &xDivs[1], &errorMsg, &patch->numXDivs, true) != 0) {
+    if (get_horizontal_ticks(p, width, bpp, false, &tmpDivs[0],
+            &tmpDivs[1], &errorMsg, &patch->numXDivs, true) != 0) {
         printf("%s\n", errorMsg);
         return NULL;
     }
+    if (patch->numXDivs) {
+        patch->xDivs = (int32_t*)malloc(patch->numXDivs*sizeof(int32_t));
+        memcpy(patch->xDivs, tmpDivs, patch->numXDivs*sizeof(int32_t));
+    }
 
     // Find top and bottom of sizing areas...
-    if (get_vertical_ticks(p, 0, width, height, bpp, transparent, true,
-                &yDivs[0], &yDivs[1],
+    if (get_vertical_ticks(p, 0, width, height, bpp, false,
+                &tmpDivs[0], &tmpDivs[1],
                 &errorMsg, &patch->numYDivs, true) != 0) {
         printf("%s\n", errorMsg);
         return NULL;
     }
+    if (patch->numYDivs) {
+        patch->yDivs = (int32_t*)malloc(patch->numYDivs*sizeof(int32_t));
+        memcpy(patch->yDivs, tmpDivs, patch->numYDivs*sizeof(int32_t));
+    }
 
-    patch->xDivs = (int32_t*)malloc(patch->numXDivs*sizeof(int32_t));
-    patch->yDivs = (int32_t*)malloc(patch->numYDivs*sizeof(int32_t));
-    memcpy(patch->xDivs, xDivs, patch->numXDivs*sizeof(int32_t));
-    memcpy(patch->yDivs, yDivs, patch->numYDivs*sizeof(int32_t));
-
+    // check for degenerate divs
+    {
+        int i;
+        int zeros = 0;
+        for (i = 0; i < patch->numYDivs && patch->yDivs[i] == 0; i++) {
+            zeros += 1;
+        }
+        patch->numYDivs -= zeros;
+        patch->yDivs += zeros;
+        for (i=patch->numYDivs-1; i>=0 && patch->yDivs[i]==height-2; --i) {
+            patch->numYDivs -= 1;
+        }
+    }
+    {
+        int i;
+        int zeros = 0;
+        for (i = 0; i < patch->numXDivs && patch->xDivs[i] == 0; i++) {
+            zeros += 1;
+        }
+        patch->numXDivs -= zeros;
+        patch->xDivs += zeros;
+        for (i=patch->numXDivs-1; i>=0 && patch->xDivs[i]==width-2; --i) {
+            patch->numXDivs -= 1;
+        }
+    }
     return patch;
 }

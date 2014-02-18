@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-struct nine_patch;
+struct l2d_nine_patch;
 struct geo_vert;
 struct build_params {
     struct l2d_image* image;
@@ -14,9 +14,9 @@ struct build_params {
 };
 
 void
-nine_patch_build_geo(struct build_params*);
+l2d_nine_patch_build_geo(struct build_params*);
 
-struct nine_patch*
-nine_patch_parse(uint8_t* data, int bpp, int width, int height);
+struct l2d_nine_patch*
+l2d_nine_patch_parse(uint8_t* data, int bpp, int width, int height);
 
 #endif
