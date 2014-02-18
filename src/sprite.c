@@ -295,13 +295,15 @@ l2d_sprite_step(struct l2d_sprite* s, float dt) {
 
 bool
 l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
-    if (!s->on_click) return false;
-    float out[4];
-    if (site_intersect_point(&s->site, x, y, out)) {
-        s->on_click(s->on_click_userdata, button, s);
-        return true;
+    bool r = false;
+    if (s->on_click) {
+        float out[4];
+        if (site_intersect_point(drawer_get_site(s->drawer), x, y, out)) {
+            s->on_click(s->on_click_userdata, button, s);
+            r = true;
+        }
     }
-    return false;
+    return r;
 }
 
 void

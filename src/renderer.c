@@ -448,6 +448,10 @@ void
 drawer_set_site(struct drawer* drawer, struct site const* site) {
     site_copy(&drawer->site, site);
 }
+const struct site*
+drawer_get_site(struct drawer* drawer) {
+    return &drawer->site;
+}
 
 void
 drawer_set_image(struct drawer* drawer, struct l2d_image* image) {

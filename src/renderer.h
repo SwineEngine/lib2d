@@ -84,6 +84,9 @@ drawer_copy(struct drawer* dst, struct drawer const* src);
 void
 drawer_set_site(struct drawer*, struct site const*);
 
+const struct site*
+drawer_get_site(struct drawer* drawer);
+
 void
 drawer_set_clip_site(struct drawer*, struct site const*);
 
