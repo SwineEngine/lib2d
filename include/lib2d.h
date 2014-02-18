@@ -229,7 +229,7 @@ l2d_sprite_new_sequence(struct l2d_sprite*);
 
 void
 l2d_sprite_sequence_add_frame(struct l2d_sprite*, int sequence,
-        l2d_ident image, float duration);
+        l2d_ident image, float duration, uint32_t image_flags);
 
 void
 l2d_sprite_sequence_play(struct l2d_sprite*, int sequence,

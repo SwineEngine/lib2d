@@ -33,6 +33,10 @@ _lib = _scene = None
 import ctypes
 
 class flags:
+    IMAGE_N_PATCH = 1<<0
+    IMAGE_NO_ATLAS = 1<<1
+    IMAGE_NO_CLAMP = 1<<2
+
     ANIM_REPEAT = 1<<0
     ANIM_REVERSE = 1<<1
     ANIM_EXTRAPOLATE = 1<<2
@@ -94,10 +98,10 @@ class Sequence:
         _lib.l2d_sprite_sequence_play(self._ptr, self._index,
                 int(start_frame), ctypes.c_float(speed_multiplier), flags)
 
-    def add_frame(self, image, duration):
+    def add_frame(self, image, duration, image_flags=None):
         ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
         _lib.l2d_sprite_sequence_add_frame(self._ptr, self._index,
-                ident, ctypes.c_float(duration))
+                ident, ctypes.c_float(duration), image_flags)
 
     def stop(self):
         _lib.l2d_sprite_sequence_stop(self._ptr)

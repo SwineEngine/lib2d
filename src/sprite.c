@@ -61,14 +61,14 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     sbpush(scene->sprites, s);
 
     struct l2d_image* im = NULL;
-    if (image) im = l2d_resources_load_image(scene->res, image);
+    if (image) im = l2d_resources_load_image(scene->res, image, flags);
     if (im) {
         drawer_set_image(s->drawer, im);
         l2d_sprite_set_size(s, ib_image_get_width(im), ib_image_get_height(im),
                 flags);
     } else {
         printf("WARNING: No image '%s'\n", l2d_ident_as_char(image));
-        im = l2d_resources_load_image(scene->res, l2d_ident_from_str("0xffffffff"));
+        im = l2d_resources_load_image(scene->res, l2d_ident_from_str("0xffffffff"), 0);
         drawer_set_image(s->drawer, im);
         l2d_sprite_set_size(s, 64, 64, flags);
     }
@@ -395,13 +395,13 @@ get_sequence(struct l2d_sprite* s, int i) {
 
 void
 l2d_sprite_sequence_add_frame(struct l2d_sprite* s, int sequence,
-        l2d_ident image, float duration) {
+        l2d_ident image, float duration, uint32_t image_flags) {
     struct sequence* se = get_sequence(s, sequence);
     struct sequence_frame* f = sbadd(se->frames, 1);
     f->duration = duration;
     f->image = NULL;
     if (image) {
-        f->image = l2d_resources_load_image(s->scene->res, image);
+        f->image = l2d_resources_load_image(s->scene->res, image, image_flags);
         ib_image_incref(f->image);
     }
     if (!f->image) {

@@ -36,7 +36,7 @@ void
 l2d_resources_delete(struct l2d_resources*);
 
 struct l2d_image*
-l2d_resources_load_image(struct l2d_resources*, l2d_ident);
+l2d_resources_load_image(struct l2d_resources*, l2d_ident, uint32_t flags);
 
 struct raw*
 l2d_resources_load_raw(struct l2d_resources*, l2d_ident);

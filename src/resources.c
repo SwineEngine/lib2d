@@ -155,7 +155,7 @@ l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
         void* data, uint32_t flags) {
     struct l2d_resources* r = scene->res;
 
-    struct l2d_image* im = l2d_resources_load_image(r, key);
+    struct l2d_image* im = l2d_resources_load_image(r, key, flags);
     if (!im) {
         im = ib_image_new(r->ib);
         struct cache_entry* e = sbadd(r->image_cache, 1);
@@ -168,7 +168,7 @@ l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
 }
 
 struct l2d_image*
-l2d_resources_load_image(struct l2d_resources* r, l2d_ident key) {
+l2d_resources_load_image(struct l2d_resources* r, l2d_ident key, uint32_t flags) {
     for (int i=0; i<sbcount(r->image_cache); ++i) {
         struct cache_entry* e = &r->image_cache[i];
         if (e->key == key) {
@@ -189,7 +189,7 @@ l2d_resources_load_image(struct l2d_resources* r, l2d_ident key) {
         ib_image_incref(image);
         e->key = key;
     } else {
-        image = load_image(r, key, l2d_ident_as_char(key), 0);
+        image = load_image(r, key, l2d_ident_as_char(key), flags);
         if (!image) {
             return NULL;
         }
