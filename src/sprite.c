@@ -153,6 +153,11 @@ l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
     s->parent = p;
     if (p) sbpush(p->children, s);
     s->has_new_parent = true;
+
+    while (s->parent) {
+        s = s->parent;
+        s->has_new_parent = true;
+    }
 }
 
 void
@@ -210,6 +215,7 @@ void
 i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool parent_changed) {
     struct site* pass_down = &s->site;
     bool u_site = s->has_new_parent;
+    s->has_new_parent = false;
 
     if (s->playing_sequence) {
         s->next_frame_in -= dt*s->sequence_speed;
@@ -242,7 +248,6 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
         }
     }
 
-    s->has_new_parent = false;
     u_site |= l2d_anim_step(&s->anims_rot, dt, &s->rot);
     if (u_site)
         quaternion_angle_axis(&s->site.quaternion, s->rot, 0, 0, 1);
