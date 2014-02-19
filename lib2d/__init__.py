@@ -161,9 +161,15 @@ class Sprite:
     @on_click.setter
     def on_click(self, cb):
         if not self._on_click and cb:
-            def _cb(ud, button):
-                self._on_click(button=button)
-            l2d_event_cb = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p)
+            def _cb(ud, button, sprite, r):
+                rel = r[0], r[1], r[2], r[3]
+                self._on_click(button=button, relative=rel)
+            l2d_event_cb = ctypes.CFUNCTYPE(
+                    ctypes.c_void_p, # restype
+                    ctypes.c_void_p,
+                    ctypes.c_int,
+                    ctypes.c_void_p,
+                    ctypes.POINTER(ctypes.c_float))
             self.__cbptr_onclick = l2d_event_cb(_cb)
             _lib.l2d_sprite_set_on_click(self._ptr, self.__cbptr_onclick, None)
 

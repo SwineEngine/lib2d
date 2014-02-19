@@ -304,7 +304,7 @@ l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
     if (s->on_click) {
         float out[4];
         if (site_intersect_point(drawer_get_site(s->drawer), x, y, out)) {
-            s->on_click(s->on_click_userdata, button, s);
+            s->on_click(s->on_click_userdata, button, s, out);
             r = true;
         }
     }

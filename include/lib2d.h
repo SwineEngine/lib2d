@@ -162,7 +162,7 @@ struct l2d_scene;
 struct l2d_sprite;
 
 typedef void (*l2d_sprite_cb)(void*, struct l2d_sprite*);
-typedef void (*l2d_event_cb)(void*, int button, struct l2d_sprite*);
+typedef void (*l2d_event_cb)(void*, int button, struct l2d_sprite*, float[4]);
 
 struct l2d_sprite*
 l2d_sprite_new(struct l2d_scene*, l2d_ident image, uint32_t flags);
