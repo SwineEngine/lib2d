@@ -17,12 +17,15 @@ map_input(struct l2d_effect* e, int input) {
 
 static
 void
-get_comp(struct l2d_effect* e, int index, char* r) {
+get_comp(struct l2d_effect* e, int index, char* r, int input_index) {
     assert(index > -1);
 
-    if (index == 0)
+    // For now, if a component has multiple inputs, they must both be targets.
+    assert(input_index == 1);
+
+    if (index == 0) {
         strcpy(r, "tex"); // Sampled main texture
-    else
+    } else
         sprintf(r, "e_%d", index);
 }
 
@@ -33,12 +36,16 @@ get_comp(struct l2d_effect* e, int index, char* r) {
  */
 static
 void
-get_target(struct l2d_effect* e, int input, char* r) {
+get_target(struct l2d_effect* e, int input, char* r, int input_index) {
     assert(input > -1);
 
     // Because of the way render targets work, the sampler is always "texture"
     // for the first input.
-    strcpy(r, "texture");
+    if (input_index == 1) {
+        strcpy(r, "texture");
+    } else {
+        strcpy(r, "texture2");
+    }
 
     if (input > 0) {
         e->components[input-1].stage_end = true;
@@ -50,7 +57,7 @@ struct l2d_effect_component*
 new_comp(struct l2d_effect* e, int input, int input2, char* name) {
     assert(input > -1);
     int id = sbcount(e->components)+1;
-    get_comp(e, id, name);
+    get_comp(e, id, name, 1);
     struct l2d_effect_component* c = sbadd(e->components, 1);
     c->id = id;
     c->inputs[0] = input;
@@ -96,13 +103,14 @@ l2d_effect_update_stages(struct l2d_effect* e) {
         if (c->stage_end) {
             int stage_i = sbcount(e->stages);
             struct l2d_effect_stage* s = sbadd(e->stages, 1);
+            s->id = stage_i;
             s->effect = e;
-            s->stage_dep = -1; // This will be overriden if a dependacy arrives at another stage.
+            s->stage_dep[0] = -1; // This will be overriden if a dependacy arrives at another stage.
+            s->stage_dep[1] = -1;
             s->components[0] = j;
             c->stage_i = stage_i;
             s->num_components = 1;
             int num = (c->inputs[0] == c->inputs[1]) ? 1 : 2;
-            // TODO handle two stage inputs!
             for (int k=0; k<num; k++) {
                 struct l2d_effect_component* itr = c;
                 while (itr->inputs[k]) {
@@ -112,7 +120,7 @@ l2d_effect_update_stages(struct l2d_effect* e) {
                     if (itr->stage_end) {
                         // We temp store which component instead of stage since we
                         // don't know which stage it will be in yet.
-                        s->stage_dep = i;
+                        s->stage_dep[k] = i;
                         break;
                     } else {
                         s->components[s->num_components] = i;
@@ -128,10 +136,13 @@ l2d_effect_update_stages(struct l2d_effect* e) {
 
     // find stage_deps
     sbforeachp(struct l2d_effect_stage* s, e->stages) {
-        if (s->stage_dep == -1) {
-            s->stage_dep = 0;
-        } else {
-            s->stage_dep = e->components[s->stage_dep].stage_i+1;
+        for (int k=0; k<2; k++) {
+            // TODO No stage dep value as -1?
+            if (s->stage_dep[k] == -1) {
+                s->stage_dep[k] = 0;
+            } else {
+                s->stage_dep[k] = e->components[s->stage_dep[k]].stage_i+1;
+            }
         }
     }
 }
@@ -141,7 +152,7 @@ l2d_effect_color_matrix(struct l2d_effect* e, int input, float t[16]) {
     input = map_input(e, input);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
-    char inp[16]; get_comp(e, input, inp);
+    char inp[16]; get_comp(e, input, inp, 1);
 
     char w[2048];
     int n = sprintf(w,
@@ -167,7 +178,7 @@ l2d_effect_convolve_matrix(struct l2d_effect* e, int input, float k[9]) {
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
 
-    char target[16]; get_target(e, input, target);
+    char target[16]; get_target(e, input, target, 1);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP_TEX", target},
@@ -202,7 +213,7 @@ l2d_effect_erode(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
-    char target[16]; get_target(e, input, target);
+    char target[16]; get_target(e, input, target, 1);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP_TEX", target},
@@ -230,7 +241,7 @@ l2d_effect_dilate(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
-    char target[16]; get_target(e, input, target);
+    char target[16]; get_target(e, input, target, 1);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP_TEX", target},
@@ -258,7 +269,7 @@ l2d_effect_blur_v(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
-    char target[16]; get_target(e, input, target);
+    char target[16]; get_target(e, input, target, 1);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP_TEX", target},
@@ -288,7 +299,7 @@ l2d_effect_blur_h(struct l2d_effect* e, int input) {
     input = map_input(e, input);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input, comp);
-    char target[16]; get_target(e, input, target);
+    char target[16]; get_target(e, input, target, 1);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP_TEX", target},
@@ -320,8 +331,8 @@ l2d_effect_blend(struct l2d_effect* e, int input, int input2,
     input2 = map_input(e, input2);
     char comp[16];
     struct l2d_effect_component* c = new_comp(e, input, input2, comp);
-    char inp[16]; get_comp(e, input, inp);
-    char inp2[16]; get_comp(e, input2, inp2);
+    char inp[16]; get_target(e, input, inp, 1);
+    char inp2[16]; get_target(e, input2, inp2, 2);
     struct template_var vars[] = {
         {"COMP", comp},
         {"INP2", inp2},
@@ -330,7 +341,7 @@ l2d_effect_blend(struct l2d_effect* e, int input, int input2,
     const char* w;
     switch (mode)  {
         case l2d_EFFECT_BLEND_MULT:
-            w = "// blend mult\nvec4 COMP = INP * INP2;\n";
+            w = "// blend mult\nvec4 COMP = texture2D(INP, texCoord_v) * texture2D(INP2, texCoord_v);\n";
             break;
         default:
             assert(false);

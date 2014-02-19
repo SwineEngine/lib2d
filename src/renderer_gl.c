@@ -253,6 +253,7 @@ static const char* defaultFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform SAMPLER1 texture2;\n"
         "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
@@ -271,6 +272,7 @@ static const char* premultFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform SAMPLER1 texture2;\n"
         "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
@@ -289,6 +291,7 @@ static const char* singleChannelFragmentSource =
         "varying float alpha_v;\n"
         "varying vec4 color_v;\n"
         "uniform SAMPLER0 texture;\n"
+        "uniform SAMPLER1 texture2;\n"
         "uniform vec2 texturePixelSize;\n"
         "MASK_FRAGMENT_HEAD"
         "DESATURATE_FRAGMENT_HEAD"
@@ -374,6 +377,7 @@ loadProgram(struct shader* program, unsigned int variant, struct l2d_effect_stag
 
     struct template_var vars[] = {
         {"SAMPLER0","sampler2D"},
+        {"SAMPLER1","sampler2D"},
         {"MASK_VERTEX_HEAD",""},
         {"MASK_VERTEX_BODY",""},
         {"MASK_FRAGMENT_HEAD",""},
@@ -404,9 +408,8 @@ loadProgram(struct shader* program, unsigned int variant, struct l2d_effect_stag
         for (int i=stage->num_components-1; i>=0; i--) {
             int index = stage->components[i];
             const char* c = stage->effect->components[index].source;
-            int len = strlen(c);
             strcpy(effect_body+n, c);
-            n += len;
+            n += strlen(c);
         }
         strcpy(effect_body+n, effect_assign);
 
@@ -455,6 +458,7 @@ loadProgram(struct shader* program, unsigned int variant, struct l2d_effect_stag
     h->miscAttrib = glGetAttribLocation(h->id, "miscAttrib");
     h->colorAttrib = glGetAttribLocation(h->id, "colorAttrib");
     h->textureHandle = glGetUniformLocation(h->id, "texture");
+    h->texture2Handle = glGetUniformLocation(h->id, "texture2");
     h->texturePixelSizeHandle = glGetUniformLocation(h->id,
             "texturePixelSize");
     h->miscAnimatingHandle = glGetUniformLocation(h->id,

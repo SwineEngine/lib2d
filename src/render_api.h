@@ -26,6 +26,7 @@ struct shader_handles {
     int32_t miscAttrib;
     int32_t colorAttrib;
     int32_t textureHandle;
+    int32_t texture2Handle;
     int32_t texturePixelSizeHandle;
     int32_t miscAnimatingHandle;
     int32_t maskTexture;

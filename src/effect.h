@@ -13,6 +13,7 @@ struct l2d_effect_component {
 
 struct l2d_effect;
 struct l2d_effect_stage {
+    int id;
     struct l2d_effect* effect;
 
     // Which components make up this stage. Iterate in reverse when building shader.
@@ -25,7 +26,7 @@ struct l2d_effect_stage {
     // for this stage is created, stage_dep's target can be used as this
     // stage's drawer
     // Stored in the same format as inputs (i-1 to index, value of 0 meaning no stage.)
-    int stage_dep;
+    int stage_dep[2];
 };
 
 struct l2d_effect {

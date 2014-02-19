@@ -16,6 +16,7 @@
 // TODO don't hard code something here.
 #define MAX_VERTICIES 1024
 
+
 struct drawer_attribute {
     l2d_ident name;
     int size; // number of floats per vertex
@@ -74,7 +75,7 @@ struct drawer {
     struct drawer* next;
     struct drawer** prev;
     struct site site;
-    struct l2d_image* image;
+    struct l2d_image* image[2];
     struct l2d_effect* effect;
     float alpha;
     float desaturate;
@@ -111,42 +112,79 @@ struct mat_cache_entry {
 };
 
 static
-struct l2d_target*
-drawer_resolve_stage_dep(struct ir* ir,
+void
+i_drawer_set_image(struct drawer* drawer, struct l2d_image* image, int k) {
+    if (image == drawer->image[k]) return;
+    if (drawer->image[k])
+        ib_image_decref(drawer->image[k]);
+    drawer->image[k] = image;
+    if (drawer->image[k])
+        ib_image_incref(drawer->image[k]);
+
+    if (!drawer->image[k] || !ib_image_same_texture(image, drawer->image[k]))
+        drawer->ir->sort_cache.sort_order_dirty = true;
+}
+
+
+static void drawer_update_material(struct drawer*);
+void
+drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
+    if (image == drawer->image[0]) return;
+    i_drawer_set_image(drawer, image, 0);
+    // TODO second image? clear effect?
+    drawer_update_material(drawer);
+}
+
+
+static
+void
+drawer_resolve_stage_dep(struct drawer* drawer, struct ir* ir,
         struct l2d_effect* e,
-        struct l2d_effect_stage* parent,
-        struct l2d_image* source_im) {
-    struct l2d_effect_stage* s = &e->stages[parent->stage_dep-1];
+        struct l2d_effect_stage* for_stage,
+        struct l2d_image* source_im,
+        struct l2d_image** built_stages) {
 
-    if (s->stage_dep) {
-        struct l2d_target* o_t = drawer_resolve_stage_dep(ir, e, s, source_im);
-        source_im = o_t->image;
-        // Need o_t->image to have it's texture created as a render target.
-        i_prepair_targets_before_texture(ir);
+    int w = ib_image_get_width(source_im);
+    int h = ib_image_get_height(source_im);
+
+    // Build dependencies
+    for (int k=0; k<2; k++) {
+        struct l2d_image* im = source_im;
+        int stage = for_stage->stage_dep[k];
+        // If stage is 0, there is not dep or it's the root texture
+        if (stage > 0) {
+            if (built_stages[stage-1]) {
+                im = built_stages[stage-1];
+            } else {
+                struct l2d_effect_stage* s = &e->stages[stage-1];
+
+                // Create a target for this stage dependency
+                // TODO save targets so they can be cleaned up!!
+                struct l2d_target* t = l2d_target_new(ir, w, h, 0);
+                struct drawer* d = drawer_new(ir);
+                d->site.rect.r = w;
+                d->site.rect.t = h;
+                drawer_set_target(d, t);
+                d->material = render_api_material_new(
+                    render_api_load_shader(SHADER_DEFAULT), s);
+                // Need t->image to have it's texture created as a render target.
+                i_prepair_targets_before_texture(ir);
+                im = t->image;
+                built_stages[stage-1] = im;
+
+                drawer_resolve_stage_dep(d, ir, e, s, source_im, built_stages);
+            }
+        }
+        i_drawer_set_image(drawer, im, k);
     }
-
-    // TODO save targets so they can be cleaned up!!
-    struct l2d_target* t = l2d_target_new(ir,
-            ib_image_get_width(source_im), ib_image_get_height(source_im),
-            0);
-
-    struct drawer* d = drawer_new(ir);
-    drawer_set_image(d, source_im);
-    d->site.rect.r = ib_image_get_width(source_im);
-    d->site.rect.t = ib_image_get_height(source_im);
-    d->material = render_api_material_new(
-        render_api_load_shader(SHADER_DEFAULT), s);
-    drawer_set_target(d, t);
-
-
-    return t;
 }
 
 static
 void
 drawer_update_material(struct drawer* d) {
+    struct l2d_image* im = d->image[0];
     if (d->effect == NULL) {
-        if (ib_image_format(d->image) == l2d_IMAGE_FORMAT_A_8) {
+        if (ib_image_format(im) == l2d_IMAGE_FORMAT_A_8) {
             d->material = d->ir->singleChannelDefaultMaterial;
         } else if (d->blend == l2d_BLEND_PREMULT) {
             d->material = d->ir->premultMaterial;
@@ -155,7 +193,7 @@ drawer_update_material(struct drawer* d) {
         }
     } else {
         struct l2d_effect_stage* last_stage = &sblast(d->effect->stages);
-        bool multi_stage = last_stage->stage_dep;
+        bool multi_stage = last_stage->stage_dep[0] || last_stage->stage_dep[1];
 
         if (!multi_stage) {
             // We can't cache multi-stage effects.
@@ -168,7 +206,7 @@ drawer_update_material(struct drawer* d) {
         }
 
         enum shader_type t = SHADER_DEFAULT;
-        if (ib_image_format(d->image) == l2d_IMAGE_FORMAT_A_8) {
+        if (ib_image_format(im) == l2d_IMAGE_FORMAT_A_8) {
             t = SHADER_SINGLE_CHANNEL;
         } else if (d->blend == l2d_BLEND_PREMULT) {
             t = SHADER_PREMULT;
@@ -176,25 +214,16 @@ drawer_update_material(struct drawer* d) {
         d->material = render_api_material_new(
             render_api_load_shader(t), last_stage);
 
-
-        if (multi_stage) {
-            // This effect requires multiple stages.
-            // The image for this drawer will need to be set on stages sampling from root.
-            struct l2d_image* source_im = d->image;
-
-            struct l2d_target* target = drawer_resolve_stage_dep(d->ir, d->effect, last_stage, source_im);
-
-            // TODO We need to keep the source_im associated with the drawer!
-            // Maybe new drawer field?
-            d->image = target->image;
-        }
-
         if (!multi_stage) {
             // We can't cache multi-stage effects.
             struct mat_cache_entry* e = sbadd(d->ir->material_cache, 1);
             e->effect_id = d->effect->id;
             e->blend = d->blend;
             e->material = d->material;
+        } else {
+            struct l2d_image* built_stages[last_stage->id];
+            for (int i=0; i<last_stage->id; i++) built_stages[i] = NULL;
+            drawer_resolve_stage_dep(d, d->ir, d->effect, last_stage, im, built_stages);
         }
     }
 }
@@ -276,7 +305,8 @@ drawer_new(struct ir* ir) {
     ir->drawerList = drawer;
     drawer->prev = & ir->drawerList;
 
-    drawer->image = NULL;
+    drawer->image[0] = NULL;
+    drawer->image[1] = NULL;
     drawer->effect = NULL;
 
     site_init(&drawer->site);
@@ -313,10 +343,12 @@ drawer_delete(struct drawer* drawer) {
     if (drawer->next) {
         drawer->next->prev = drawer->prev;
     }
-    if (drawer->image) {
-        ib_image_decref(drawer->image);
-        free(drawer);
+    for (int k=0; k<2; k++) {
+        if (drawer->image[k]) {
+            ib_image_decref(drawer->image[k]);
+        }
     }
+    free(drawer);
     // TODO cleanup vertex data.
 }
 
@@ -328,12 +360,14 @@ void
 drawer_copy(struct drawer* dst, struct drawer const* src) {
     dst->ir->sort_cache.sort_order_dirty = true;
     site_copy(&dst->site, &src->site);
-    dst->image = src->image;
-    if (dst->image)
-        ib_image_incref(dst->image);
+    for (int k=0; k<2; k++) {
+        dst->image[k] = src->image[k];
+        if (dst->image[k])
+            ib_image_incref(dst->image[k]);
+    }
+    dst->material = src->material;
     dst->alpha = src->alpha;
     dst->desaturate = src->desaturate;
-    dst->material = src->material;
     dst->target = src->target;
     dst->order = src->order;
     dst->mask = src->mask;
@@ -451,20 +485,6 @@ drawer_set_site(struct drawer* drawer, struct site const* site) {
 const struct site*
 drawer_get_site(struct drawer* drawer) {
     return &drawer->site;
-}
-
-void
-drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
-    if (image == drawer->image) return;
-    if (drawer->image)
-        ib_image_decref(drawer->image);
-    drawer->image = image;
-    if (drawer->image)
-        ib_image_incref(drawer->image);
-    drawer_update_material(drawer);
-
-    if (!drawer->image || !ib_image_same_texture(image, drawer->image))
-        drawer->ir->sort_cache.sort_order_dirty = true;
 }
 
 void
@@ -707,7 +727,7 @@ drawerSortCompare(const void* aVoidP, const void* bVoidP) {
         return a->order - b->order;
     }
 
-    int r = image_sort_compare(a->image, b->image);
+    int r = image_sort_compare(a->image[0], b->image[0]);
     if (r) {
         return r;
     }
@@ -771,10 +791,10 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
     int vertexCount;
     int indexCount;
 
-    struct l2d_nine_patch* nine_patch = l2d_image_get_nine_patch(d->image);
+    struct l2d_nine_patch* nine_patch = l2d_image_get_nine_patch(d->image[0]);
     if (nine_patch) {
         drawer_clear_geo(d);
-        struct build_params params = {.image=d->image, .geoVerticies=d->geoVerticies,
+        struct build_params params = {.image=d->image[0], .geoVerticies=d->geoVerticies,
             .geoIndicies=d->geoIndicies, .bounds_width=width, .bounds_height=height};
         // TODO cache built nine patch
         l2d_nine_patch_build_geo(&params);
@@ -805,7 +825,7 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
         .site = site,
         .alpha = alpha,
         .desaturate = desaturate,
-        .texture_region = ib_image_get_texture_region(d->image),
+        .texture_region = ib_image_get_texture_region(d->image[0]),
         .matrix = *projection_matrix,
         .clip = false,
     };
@@ -901,7 +921,9 @@ static
 void
 batch_flush(struct batch* batch,
         struct material* material,
-        struct l2d_image* image, enum l2d_blend blend,
+        struct l2d_image* image,
+        struct l2d_image* image2,
+        enum l2d_blend blend,
         struct drawer_mask* mask,
         bool desaturate,
         int viewportWidth, int viewportHeight) {
@@ -926,6 +948,11 @@ batch_flush(struct batch* batch,
 
     ib_image_bind(image, shader->texturePixelSizeHandle, shader->textureHandle, texture_slot);
     texture_slot++;
+
+    if (image2) {
+        ib_image_bind(image2, -1, shader->texture2Handle, texture_slot);
+        texture_slot++;
+    }
 
     if (mask) {
         if (shader->maskTexture != -1) {
@@ -1037,22 +1064,25 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
 
     struct material* material = sort_cache->buffer[0]->material;
     batch_reset(batch, material);
-    struct l2d_image* image = sort_cache->buffer[0]->image;
+    struct l2d_image* image = sort_cache->buffer[0]->image[0];
+    struct l2d_image* image2 = sort_cache->buffer[0]->image[1];
     enum l2d_blend blend = sort_cache->buffer[0]->blend;
     struct drawer_mask* mask = sort_cache->buffer[0]->mask;
     bool desaturate = sort_cache->buffer[0]->desaturate;
     for (int i = 0; i < sort_cache->drawer_count; i++) {
         struct drawer* drawer = sort_cache->buffer[i];
-        if (!ib_image_same_texture(drawer->image, image)
+        if (!ib_image_same_texture(drawer->image[0], image)
+                || !ib_image_same_texture(drawer->image[1], image2)
                 || drawer->material != material
                 || drawer->blend != blend
                 || drawer->mask != mask
                 || (drawer->desaturate!=0) != desaturate) {
-            batch_flush(batch, material, image, blend, mask, desaturate,
+            batch_flush(batch, material, image, image2, blend, mask, desaturate,
                     viewportWidth, viewportHeight);
             desaturate = drawer->desaturate;
             material = drawer->material;
-            image = drawer->image;
+            image = drawer->image[0];
+            image2 = drawer->image[1];
             blend = drawer->blend;
             mask = drawer->mask;
             batch_reset(batch, material);
@@ -1060,7 +1090,7 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
         batch_add(batch, drawer, viewportWidth, viewportHeight,
                 &projection_matrix);
     }
-    batch_flush(batch, material, image, blend, mask, desaturate,
+    batch_flush(batch, material, image, image2, blend, mask, desaturate,
             viewportWidth, viewportHeight);
 }
 

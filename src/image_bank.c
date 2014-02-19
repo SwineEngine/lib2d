@@ -397,6 +397,8 @@ ib_image_setAsRenderTarget(struct l2d_image* image,
 
 bool
 ib_image_same_texture(struct l2d_image* lhs, struct l2d_image* rhs) {
+    if (lhs == NULL && rhs == NULL) return true;
+    if (lhs == NULL || rhs == NULL) return false;
     return lhs->texture == rhs->texture;
 }
 
