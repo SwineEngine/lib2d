@@ -138,6 +138,11 @@ l2d_sprite_delete(struct l2d_sprite* s) {
     i_sprite_delete(s);
 }
 
+struct l2d_scene*
+l2d_sprite_get_scene(struct l2d_sprite* s) {
+    return s->scene;
+}
+
 void
 l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
     if (p != s->parent && s->parent) {

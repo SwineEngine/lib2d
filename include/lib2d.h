@@ -170,6 +170,9 @@ l2d_sprite_new(struct l2d_scene*, l2d_ident image, uint32_t flags);
 void
 l2d_sprite_delete(struct l2d_sprite*);
 
+struct l2d_scene*
+l2d_sprite_get_scene(struct l2d_sprite*);
+
 void
 l2d_sprite_set_parent(struct l2d_sprite*, struct l2d_sprite*);
 
