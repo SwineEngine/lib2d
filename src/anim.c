@@ -102,6 +102,7 @@ l2d_anim_step(struct l2d_anim** first, float dt, float* dst) {
 
 void
 l2d_anim_new(struct l2d_anim** anim_list, float to_v, float dt, uint32_t flags) {
+    if (dt == 0) l2d_anim_release_all(anim_list);
     struct l2d_anim* a = grab_anim();
     a->to_v = to_v;
     a->start_v = 0;

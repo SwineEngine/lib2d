@@ -143,6 +143,16 @@ l2d_sprite_get_scene(struct l2d_sprite* s) {
     return s->scene;
 }
 
+int
+l2d_sprite_get_image_width(struct l2d_sprite* s) {
+    return ib_image_get_width(s->image);
+}
+
+int
+l2d_sprite_get_image_height(struct l2d_sprite* s) {
+    return ib_image_get_height(s->image);
+}
+
 void
 l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
     if (p != s->parent && s->parent) {

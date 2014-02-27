@@ -136,6 +136,13 @@ class Sprite:
             cb()
 
     @property
+    def image_width(self):
+        return _lib.l2d_sprite_get_image_width(self._ptr)
+    @property
+    def image_height(self):
+        return _lib.l2d_sprite_get_image_height(self._ptr)
+
+    @property
     def effect(self):
         return self._effect
     @effect.setter

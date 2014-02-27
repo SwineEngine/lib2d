@@ -173,6 +173,12 @@ l2d_sprite_delete(struct l2d_sprite*);
 struct l2d_scene*
 l2d_sprite_get_scene(struct l2d_sprite*);
 
+int
+l2d_sprite_get_image_width(struct l2d_sprite*);
+
+int
+l2d_sprite_get_image_height(struct l2d_sprite*);
+
 void
 l2d_sprite_set_parent(struct l2d_sprite*, struct l2d_sprite*);
 
