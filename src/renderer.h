@@ -26,7 +26,7 @@ struct batch {
 };
 
 struct sort_cache {
-    struct drawer** buffer;
+    struct l2d_drawer** buffer;
     int alloc_size;
     int drawer_count;
     bool sort_buffer_dirty;
@@ -41,9 +41,9 @@ struct mat_cache_entry;
 struct ir {
     struct l2d_image_bank* ib;
     struct l2d_target* targetList;
-    struct drawer* drawerList;
+    struct l2d_drawer* drawerList;
     struct sort_cache sort_cache;
-    struct drawer_mask* maskList;
+    struct l2d_drawer_mask* maskList;
     int viewportWidth, viewportHeight;
     float translate[3];
     struct material* defaultMaterial;
@@ -69,90 +69,90 @@ ir_delete(struct ir*);
 void
 ir_render(struct ir*);
 
-struct drawer;
-struct drawer_mask;
+struct l2d_drawer;
+struct l2d_drawer_mask;
 
-struct drawer*
-drawer_new(struct ir*);
-
-void
-drawer_delete(struct drawer*);
+struct l2d_drawer*
+l2d_drawer_new(struct ir*);
 
 void
-drawer_copy(struct drawer* dst, struct drawer const* src);
+l2d_drawer_delete(struct l2d_drawer*);
 
 void
-drawer_set_site(struct drawer*, struct site const*);
+l2d_drawer_copy(struct l2d_drawer* dst, struct l2d_drawer const* src);
+
+void
+l2d_drawer_set_site(struct l2d_drawer*, struct site const*);
 
 const struct site*
-drawer_get_site(struct drawer* drawer);
+l2d_drawer_get_site(struct l2d_drawer* drawer);
 
 void
-drawer_set_clip_site(struct drawer*, struct site const*);
+l2d_drawer_set_clip_site(struct l2d_drawer*, struct site const*);
 
 void
-drawer_set_image(struct drawer*, struct l2d_image*);
+l2d_drawer_set_image(struct l2d_drawer*, struct l2d_image*);
 
 void
-drawer_set_effect(struct drawer*, struct l2d_effect*);
+l2d_drawer_set_effect(struct l2d_drawer*, struct l2d_effect*);
 
 void
-drawer_set_desaturate(struct drawer*, float);
+l2d_drawer_set_desaturate(struct l2d_drawer*, float);
 
 void
-drawer_set_color(struct drawer*, float color[4]);
+l2d_drawer_set_color(struct l2d_drawer*, float color[4]);
 
 void
-drawer_setMaterial(struct drawer*, struct material*);
+l2d_drawer_setMaterial(struct l2d_drawer*, struct material*);
 
 void
-drawer_set_target(struct drawer*, struct l2d_target*);
+l2d_drawer_set_target(struct l2d_drawer*, struct l2d_target*);
 
 void
-drawer_set_layer(struct drawer*, int layer);
+l2d_drawer_set_layer(struct l2d_drawer*, int layer);
 
 void
-drawer_setOrder(struct drawer*, int order);
+l2d_drawer_setOrder(struct l2d_drawer*, int order);
 
 void
-drawer_add_geo_rect(struct drawer*, struct rect pos,
+l2d_drawer_add_geo_rect(struct l2d_drawer*, struct rect pos,
         struct rect tex);
 
 struct vert_2d {
     float x, y, u, v;
 };
 void
-drawer_add_geo_2d(struct drawer*,
+l2d_drawer_add_geo_2d(struct l2d_drawer*,
         struct vert_2d* verticies, unsigned int vert_count,
         unsigned int* indicies, unsigned int index_count);
 
 void
-drawer_add_geo_attribute(struct drawer*,
+l2d_drawer_add_geo_attribute(struct l2d_drawer*,
         l2d_ident attribute,
         unsigned int size, float* verticies, unsigned int vert_count);
 
 void
-drawer_clear_geo(struct drawer*);
+l2d_drawer_clear_geo(struct l2d_drawer*);
 
 void
-drawer_blend(struct drawer*, enum l2d_blend);
+l2d_drawer_blend(struct l2d_drawer*, enum l2d_blend);
 
 void
-drawer_set_mask(struct drawer*, struct drawer_mask*);
+l2d_drawer_set_mask(struct l2d_drawer*, struct l2d_drawer_mask*);
 
-struct drawer_mask*
-drawer_mask_new(struct ir* ir);
+struct l2d_drawer_mask*
+l2d_drawer_mask_new(struct ir* ir);
 
-struct drawer_mask*
-drawer_mask_clone(struct ir* ir, struct drawer_mask* old);
-
-void
-drawer_mask_set_image(struct drawer_mask*, struct l2d_image*);
+struct l2d_drawer_mask*
+l2d_drawer_mask_clone(struct ir* ir, struct l2d_drawer_mask* old);
 
 void
-drawer_mask_set_site(struct drawer_mask*, struct site const*);
+l2d_drawer_mask_set_image(struct l2d_drawer_mask*, struct l2d_image*);
 
 void
-drawer_mask_set_alpha(struct drawer_mask*, float);
+l2d_drawer_mask_set_site(struct l2d_drawer_mask*, struct site const*);
+
+void
+l2d_drawer_mask_set_alpha(struct l2d_drawer_mask*, float);
 #endif
 

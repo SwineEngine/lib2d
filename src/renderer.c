@@ -17,7 +17,7 @@
 #define MAX_VERTICIES 1024
 
 
-struct drawer_attribute {
+struct l2d_drawer_attribute {
     l2d_ident name;
     int size; // number of floats per vertex
     float* data; // stretchy buffer
@@ -70,10 +70,10 @@ premult_site_to_matrix(struct matrix* m, struct site const* site) {
     matrix_translate_inplace(m, site->rect.l, site->rect.t, 0.f);
 }
 
-struct drawer {
+struct l2d_drawer {
     struct ir* ir;
-    struct drawer* next;
-    struct drawer** prev;
+    struct l2d_drawer* next;
+    struct l2d_drawer** prev;
     struct site site;
     struct l2d_image* image[2];
     struct l2d_effect* effect;
@@ -88,18 +88,18 @@ struct drawer {
     struct geo_vert* geoVerticies; // stretchy buffer
     unsigned short* geoIndicies;
 
-    struct drawer_attribute* attributes; // stretchy buffer
+    struct l2d_drawer_attribute* attributes; // stretchy buffer
 
-    struct drawer_mask* mask;
+    struct l2d_drawer_mask* mask;
 
     struct site clip_site;
     bool clip_site_set;
 };
 
-struct drawer_mask {
+struct l2d_drawer_mask {
     struct ir* ir;
-    struct drawer_mask* next;
-    struct drawer_mask** prev;
+    struct l2d_drawer_mask* next;
+    struct l2d_drawer_mask** prev;
     struct site site;
     struct l2d_image* image;
     float alpha;
@@ -113,7 +113,7 @@ struct mat_cache_entry {
 
 static
 void
-i_drawer_set_image(struct drawer* drawer, struct l2d_image* image, int k) {
+i_drawer_set_image(struct l2d_drawer* drawer, struct l2d_image* image, int k) {
     if (image == drawer->image[k]) return;
     if (drawer->image[k])
         ib_image_decref(drawer->image[k]);
@@ -126,19 +126,19 @@ i_drawer_set_image(struct drawer* drawer, struct l2d_image* image, int k) {
 }
 
 
-static void drawer_update_material(struct drawer*);
+static void l2d_drawer_update_material(struct l2d_drawer*);
 void
-drawer_set_image(struct drawer* drawer, struct l2d_image* image) {
+l2d_drawer_set_image(struct l2d_drawer* drawer, struct l2d_image* image) {
     if (image == drawer->image[0]) return;
     i_drawer_set_image(drawer, image, 0);
     // TODO second image? clear effect?
-    drawer_update_material(drawer);
+    l2d_drawer_update_material(drawer);
 }
 
 
 static
 void
-drawer_resolve_stage_dep(struct drawer* drawer, struct ir* ir,
+l2d_drawer_resolve_stage_dep(struct l2d_drawer* drawer, struct ir* ir,
         struct l2d_effect* e,
         struct l2d_effect_stage* for_stage,
         struct l2d_image* source_im,
@@ -161,10 +161,10 @@ drawer_resolve_stage_dep(struct drawer* drawer, struct ir* ir,
                 // Create a target for this stage dependency
                 // TODO save targets so they can be cleaned up!!
                 struct l2d_target* t = l2d_target_new(ir, w, h, 0);
-                struct drawer* d = drawer_new(ir);
+                struct l2d_drawer* d = l2d_drawer_new(ir);
                 d->site.rect.r = w;
                 d->site.rect.t = h;
-                drawer_set_target(d, t);
+                l2d_drawer_set_target(d, t);
                 d->material = render_api_material_new(
                     render_api_load_shader(SHADER_DEFAULT), s);
                 // Need t->image to have it's texture created as a render target.
@@ -172,7 +172,7 @@ drawer_resolve_stage_dep(struct drawer* drawer, struct ir* ir,
                 im = t->image;
                 built_stages[stage-1] = im;
 
-                drawer_resolve_stage_dep(d, ir, e, s, source_im, built_stages);
+                l2d_drawer_resolve_stage_dep(d, ir, e, s, source_im, built_stages);
             }
         }
         i_drawer_set_image(drawer, im, k);
@@ -181,7 +181,7 @@ drawer_resolve_stage_dep(struct drawer* drawer, struct ir* ir,
 
 static
 void
-drawer_update_material(struct drawer* d) {
+l2d_drawer_update_material(struct l2d_drawer* d) {
     struct l2d_image* im = d->image[0];
     if (d->effect == NULL) {
         if (ib_image_format(im) == l2d_IMAGE_FORMAT_A_8) {
@@ -223,7 +223,7 @@ drawer_update_material(struct drawer* d) {
         } else {
             struct l2d_image* built_stages[last_stage->id];
             for (int i=0; i<last_stage->id; i++) built_stages[i] = NULL;
-            drawer_resolve_stage_dep(d, d->ir, d->effect, last_stage, im, built_stages);
+            l2d_drawer_resolve_stage_dep(d, d->ir, d->effect, last_stage, im, built_stages);
         }
     }
 }
@@ -276,7 +276,7 @@ init_sort_cache(struct sort_cache* c){
 void
 ir_delete(struct ir* ir) {
     while (ir->drawerList != NULL) {
-        drawer_delete(ir->drawerList);
+        l2d_drawer_delete(ir->drawerList);
     }
 
     if (ir->sort_cache.buffer)
@@ -292,11 +292,11 @@ ir_delete(struct ir* ir) {
     free(ir);
 }
 
-struct drawer*
-drawer_new(struct ir* ir) {
+struct l2d_drawer*
+l2d_drawer_new(struct ir* ir) {
     ir->sort_cache.sort_buffer_dirty = true;
-    struct drawer* drawer =
-        (struct drawer*)malloc(sizeof(struct drawer));
+    struct l2d_drawer* drawer =
+        (struct l2d_drawer*)malloc(sizeof(struct l2d_drawer));
     drawer->ir = ir;
     drawer->next = ir->drawerList;
     if (ir->drawerList) {
@@ -337,7 +337,7 @@ drawer_new(struct ir* ir) {
 }
 
 void
-drawer_delete(struct drawer* drawer) {
+l2d_drawer_delete(struct l2d_drawer* drawer) {
     drawer->ir->sort_cache.sort_buffer_dirty = true;
     *drawer->prev = drawer->next;
     if (drawer->next) {
@@ -357,7 +357,7 @@ struct geo_vert {
 };
 
 void
-drawer_copy(struct drawer* dst, struct drawer const* src) {
+l2d_drawer_copy(struct l2d_drawer* dst, struct l2d_drawer const* src) {
     dst->ir->sort_cache.sort_order_dirty = true;
     site_copy(&dst->site, &src->site);
     for (int k=0; k<2; k++) {
@@ -372,7 +372,7 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
     dst->order = src->order;
     dst->mask = src->mask;
 
-    drawer_clear_geo(dst);
+    l2d_drawer_clear_geo(dst);
 
     if (sbcount(src->geoVerticies)) {
         sbconcat(dst->geoVerticies, src->geoVerticies);
@@ -381,25 +381,25 @@ drawer_copy(struct drawer* dst, struct drawer const* src) {
         sbconcat(dst->geoIndicies, src->geoIndicies);
     }
     for (int i=0; i<sbcount(src->attributes); i++) {
-        struct drawer_attribute* a = &src->attributes[i];
+        struct l2d_drawer_attribute* a = &src->attributes[i];
         if (sbcount(a->data)) {
-            drawer_add_geo_attribute(dst, a->name, a->size, a->data,
+            l2d_drawer_add_geo_attribute(dst, a->name, a->size, a->data,
                     sbcount(a->data)/a->size);
         }
     }
 }
 
 void
-drawer_set_effect(struct drawer* d, struct l2d_effect* e) {
+l2d_drawer_set_effect(struct l2d_drawer* d, struct l2d_effect* e) {
     if (e == d->effect) return;
     d->ir->sort_cache.sort_order_dirty = true;
     l2d_effect_update_stages(e);
     d->effect = e;
-    drawer_update_material(d);
+    l2d_drawer_update_material(d);
 }
 
 void
-drawer_add_geo_rect(struct drawer* d,
+l2d_drawer_add_geo_rect(struct l2d_drawer* d,
         struct rect pos, struct rect tex) {
     int start = sbcount(d->geoVerticies);
     if (start+4 > MAX_VERTICIES) {
@@ -425,7 +425,7 @@ drawer_add_geo_rect(struct drawer* d,
 }
 
 void
-drawer_add_geo_2d(struct drawer* d,
+l2d_drawer_add_geo_2d(struct l2d_drawer* d,
         struct vert_2d* verticies, unsigned int vert_count,
         unsigned int* indicies, unsigned int index_count) {
     int start = sbcount(d->geoVerticies);
@@ -443,10 +443,10 @@ drawer_add_geo_2d(struct drawer* d,
 }
 
 void
-drawer_add_geo_attribute(struct drawer* d,
+l2d_drawer_add_geo_attribute(struct l2d_drawer* d,
         l2d_ident attribute,
         unsigned int size, float* verticies, unsigned int vert_count) {
-    struct drawer_attribute* a=NULL;
+    struct l2d_drawer_attribute* a=NULL;
     // first, find an existing attribute with that name:
     for (int i=0; i<sbcount(d->attributes); i++) {
         if (d->attributes[i].name == attribute) {
@@ -468,7 +468,7 @@ drawer_add_geo_attribute(struct drawer* d,
 }
 
 void
-drawer_clear_geo(struct drawer* d) {
+l2d_drawer_clear_geo(struct l2d_drawer* d) {
     if (d->geoVerticies)
         sbremove(d->geoVerticies, 0, sbcount(d->geoVerticies));
     if (d->geoIndicies)
@@ -479,21 +479,21 @@ drawer_clear_geo(struct drawer* d) {
 }
 
 void
-drawer_set_site(struct drawer* drawer, struct site const* site) {
+l2d_drawer_set_site(struct l2d_drawer* drawer, struct site const* site) {
     site_copy(&drawer->site, site);
 }
 const struct site*
-drawer_get_site(struct drawer* drawer) {
+l2d_drawer_get_site(struct l2d_drawer* drawer) {
     return &drawer->site;
 }
 
 void
-drawer_set_desaturate(struct drawer* drawer, float desaturate) {
+l2d_drawer_set_desaturate(struct l2d_drawer* drawer, float desaturate) {
     drawer->desaturate = desaturate;
 }
 
 void
-drawer_set_color(struct drawer* drawer, float color[4]) {
+l2d_drawer_set_color(struct l2d_drawer* drawer, float color[4]) {
     drawer->color[0] = color[0];
     drawer->color[1] = color[1];
     drawer->color[2] = color[2];
@@ -502,7 +502,7 @@ drawer_set_color(struct drawer* drawer, float color[4]) {
 
 
 void
-drawer_setMaterial(struct drawer* drawer,
+l2d_drawer_setMaterial(struct l2d_drawer* drawer,
         struct material* material) {
     drawer->ir->sort_cache.sort_order_dirty = true;
     if (material == NULL) {
@@ -512,7 +512,7 @@ drawer_setMaterial(struct drawer* drawer,
 }
 
 void
-drawer_set_target(struct drawer* drawer, struct l2d_target* target) {
+l2d_drawer_set_target(struct l2d_drawer* drawer, struct l2d_target* target) {
     if (target == drawer->target) return;
     drawer->target = target;
 
@@ -526,7 +526,7 @@ drawer_set_target(struct drawer* drawer, struct l2d_target* target) {
     }
     *drawer->prev = drawer->next;
 
-    struct drawer** drawerListP =
+    struct l2d_drawer** drawerListP =
         target ? &target->drawerList : &drawer->ir->drawerList;
 
     // add to new target:
@@ -539,13 +539,13 @@ drawer_set_target(struct drawer* drawer, struct l2d_target* target) {
 }
 
 void
-drawer_setOrder(struct drawer* drawer, int order) {
+l2d_drawer_setOrder(struct l2d_drawer* drawer, int order) {
     drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->order = order;
 }
 
 void
-drawer_set_clip_site(struct drawer* drawer,
+l2d_drawer_set_clip_site(struct l2d_drawer* drawer,
         struct site const* site) {
     drawer->ir->sort_cache.sort_order_dirty = true;
     if (site) {
@@ -557,22 +557,22 @@ drawer_set_clip_site(struct drawer* drawer,
 }
 
 void
-drawer_blend(struct drawer* drawer, enum l2d_blend blend) {
+l2d_drawer_blend(struct l2d_drawer* drawer, enum l2d_blend blend) {
     if (blend == drawer->blend) return;
     drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->blend = blend;
-    drawer_update_material(drawer);
+    l2d_drawer_update_material(drawer);
 }
 
 void
-drawer_set_mask(struct drawer* drawer, struct drawer_mask* mask) {
+l2d_drawer_set_mask(struct l2d_drawer* drawer, struct l2d_drawer_mask* mask) {
     drawer->ir->sort_cache.sort_order_dirty = true;
     drawer->mask = mask;
 }
 
-struct drawer_mask*
-drawer_mask_new(struct ir* ir) {
-    struct drawer_mask* mask = malloc(sizeof(struct drawer_mask));
+struct l2d_drawer_mask*
+l2d_drawer_mask_new(struct ir* ir) {
+    struct l2d_drawer_mask* mask = malloc(sizeof(struct l2d_drawer_mask));
     mask->ir = ir;
 
     mask->next = ir->maskList;
@@ -590,17 +590,17 @@ drawer_mask_new(struct ir* ir) {
     return mask;
 }
 
-struct drawer_mask*
-drawer_mask_clone(struct ir* ir, struct drawer_mask* old) {
-    struct drawer_mask* m = drawer_mask_new(ir);
-    drawer_mask_set_image(m, old->image);
-    drawer_mask_set_site(m, &old->site);
-    drawer_mask_set_alpha(m, old->alpha);
+struct l2d_drawer_mask*
+l2d_drawer_mask_clone(struct ir* ir, struct l2d_drawer_mask* old) {
+    struct l2d_drawer_mask* m = l2d_drawer_mask_new(ir);
+    l2d_drawer_mask_set_image(m, old->image);
+    l2d_drawer_mask_set_site(m, &old->site);
+    l2d_drawer_mask_set_alpha(m, old->alpha);
     return m;
 }
 
 void
-drawer_mask_set_image(struct drawer_mask* mask,
+l2d_drawer_mask_set_image(struct l2d_drawer_mask* mask,
         struct l2d_image* image) {
     if (image == mask->image) return;
     if (mask->image)
@@ -611,13 +611,13 @@ drawer_mask_set_image(struct drawer_mask* mask,
 }
 
 void
-drawer_mask_set_site(struct drawer_mask* mask,
+l2d_drawer_mask_set_site(struct l2d_drawer_mask* mask,
         struct site const* site) {
     site_copy(&mask->site, site);
 }
 
 void
-drawer_mask_set_alpha(struct drawer_mask* mask, float a) {
+l2d_drawer_mask_set_alpha(struct l2d_drawer_mask* mask, float a) {
     mask->alpha = a;
 }
 
@@ -720,8 +720,8 @@ generateRect(struct data_output* d, int width, int height) {
 static
 int
 drawerSortCompare(const void* aVoidP, const void* bVoidP) {
-    const struct drawer* a = *(const struct drawer**)aVoidP;
-    const struct drawer* b = *(const struct drawer**)bVoidP;
+    const struct l2d_drawer* a = *(const struct l2d_drawer**)aVoidP;
+    const struct l2d_drawer* b = *(const struct l2d_drawer**)bVoidP;
 
     if (a->order != b->order) {
         return a->order - b->order;
@@ -780,7 +780,7 @@ batch_reset(struct batch* b, struct material* m) {
 
 static
 void
-batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
+batch_add(struct batch* batch, struct l2d_drawer* d, int viewportWidth,
         int viewportHeight, struct matrix const* projection_matrix) {
     struct site* site = &d->site;
     float width = site->rect.r - site->rect.l;
@@ -793,7 +793,7 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
 
     struct l2d_nine_patch* nine_patch = l2d_image_get_nine_patch(d->image[0]);
     if (nine_patch) {
-        drawer_clear_geo(d);
+        l2d_drawer_clear_geo(d);
         struct build_params params = {.image=d->image[0], .geoVerticies=d->geoVerticies,
             .geoIndicies=d->geoIndicies, .bounds_width=width, .bounds_height=height};
         // TODO cache built nine patch
@@ -886,7 +886,7 @@ batch_add(struct batch* batch, struct drawer* d, int viewportWidth,
             struct attribute* a = &batch->attributes[i];
             if (a->name == 0) break;
             // find attribute in drawer
-            struct drawer_attribute* da = NULL;
+            struct l2d_drawer_attribute* da = NULL;
             for (int j=0; j<sbcount(d->attributes); j++) {
                 if (d->attributes[i].name == a->name) {
                     da = &d->attributes[i];
@@ -924,7 +924,7 @@ batch_flush(struct batch* batch,
         struct l2d_image* image,
         struct l2d_image* image2,
         enum l2d_blend blend,
-        struct drawer_mask* mask,
+        struct l2d_drawer_mask* mask,
         bool desaturate,
         int viewportWidth, int viewportHeight) {
     if (batch->indexCount == 0) {
@@ -1025,7 +1025,7 @@ batch_flush(struct batch* batch,
 
 static
 void
-drawDrawerList(struct batch* batch, struct drawer* drawerList,
+drawDrawerList(struct batch* batch, struct l2d_drawer* drawerList,
         int viewportWidth, int viewportHeight, float* translate,
         struct sort_cache* sort_cache) {
     struct matrix projection_matrix;
@@ -1043,7 +1043,7 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
         sort_cache->sort_buffer_dirty = false;
         sort_cache->sort_order_dirty = true;
         sort_cache->drawer_count = 0;
-        for (struct drawer* drawer = drawerList;
+        for (struct l2d_drawer* drawer = drawerList;
                 drawer != NULL; drawer = drawer->next) {
             if (sort_cache->drawer_count == sort_cache->alloc_size) {
                 sort_cache->alloc_size += 128;
@@ -1058,7 +1058,7 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
 
     if (sort_cache->sort_order_dirty) {
         sort_cache->sort_order_dirty = false;
-        qsort(sort_cache->buffer, sort_cache->drawer_count, sizeof(struct drawer*),
+        qsort(sort_cache->buffer, sort_cache->drawer_count, sizeof(struct l2d_drawer*),
             drawerSortCompare);
     }
 
@@ -1067,10 +1067,10 @@ drawDrawerList(struct batch* batch, struct drawer* drawerList,
     struct l2d_image* image = sort_cache->buffer[0]->image[0];
     struct l2d_image* image2 = sort_cache->buffer[0]->image[1];
     enum l2d_blend blend = sort_cache->buffer[0]->blend;
-    struct drawer_mask* mask = sort_cache->buffer[0]->mask;
+    struct l2d_drawer_mask* mask = sort_cache->buffer[0]->mask;
     bool desaturate = sort_cache->buffer[0]->desaturate;
     for (int i = 0; i < sort_cache->drawer_count; i++) {
-        struct drawer* drawer = sort_cache->buffer[i];
+        struct l2d_drawer* drawer = sort_cache->buffer[i];
         if (!ib_image_same_texture(drawer->image[0], image)
                 || !ib_image_same_texture(drawer->image[1], image2)
                 || drawer->material != material

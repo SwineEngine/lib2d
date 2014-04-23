@@ -36,7 +36,7 @@ i_prepair_targets_before_texture(struct ir* ir) {
                 site_init(&s);
                 s.rect.r = itr->width;
                 s.rect.b = itr->height;
-                drawer_set_site(itr->drawer, &s);
+                l2d_drawer_set_site(itr->drawer, &s);
             }
         }
     }
@@ -97,8 +97,8 @@ l2d_target_new(struct ir* ir, int width, int height, unsigned int flags) {
     target->image = ib_image_new(ir->ib);
 
     if (flags & l2d_TARGET_MANAGE_DRAWER) {
-        target->drawer = drawer_new(ir);
-        drawer_set_image(target->drawer, target->image);
+        target->drawer = l2d_drawer_new(ir);
+        l2d_drawer_set_image(target->drawer, target->image);
     } else {
         target->drawer = NULL;
     }
@@ -114,7 +114,7 @@ l2d_target_as_image(struct l2d_target* target) {
     return target->image;
 }
 
-struct drawer*
+struct l2d_drawer*
 l2d_target_as_drawer(struct l2d_target* target) {
     return target->drawer;
 }

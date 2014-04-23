@@ -23,7 +23,7 @@ struct l2d_sprite {
     struct l2d_sprite** children; // stretchy_buffer
     struct site site;
     uint32_t flags;
-    struct drawer* drawer;
+    struct l2d_drawer* drawer;
     struct l2d_image* image;
     float rot;
     struct l2d_anim* anims_x; // linked list
@@ -57,19 +57,19 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->children = NULL;
     site_init(&s->site);
     s->flags = flags;
-    s->drawer = drawer_new(scene->ir);
+    s->drawer = l2d_drawer_new(scene->ir);
     sbpush(scene->sprites, s);
 
     struct l2d_image* im = NULL;
     if (image) im = l2d_resources_load_image(scene->res, image, flags);
     if (im) {
-        drawer_set_image(s->drawer, im);
+        l2d_drawer_set_image(s->drawer, im);
         l2d_sprite_set_size(s, ib_image_get_width(im), ib_image_get_height(im),
                 flags);
     } else {
         printf("WARNING: No image '%s'\n", l2d_ident_as_char(image));
         im = l2d_resources_load_image(scene->res, l2d_ident_from_str("0xffffffff"), 0);
-        drawer_set_image(s->drawer, im);
+        l2d_drawer_set_image(s->drawer, im);
         l2d_sprite_set_size(s, 64, 64, flags);
     }
     s->image = im;
@@ -121,7 +121,7 @@ i_sprite_delete(struct l2d_sprite* s) {
 
     ib_image_decref(s->image);
     sbfree(s->children);
-    drawer_delete(s->drawer);
+    l2d_drawer_delete(s->drawer);
     l2d_sprite_abort_anim(s);
     free(s);
 }
@@ -200,12 +200,12 @@ l2d_sprite_set_size(struct l2d_sprite* s, int w, int h, uint32_t flags) {
     }
     // If this sprite has a parent, the site will be set in step.
     if (s->parent == NULL)
-        drawer_set_site(s->drawer, &s->site);
+        l2d_drawer_set_site(s->drawer, &s->site);
 }
 
 void
 l2d_sprite_set_order(struct l2d_sprite* s, int order) {
-    drawer_setOrder(s->drawer, order);
+    l2d_drawer_setOrder(s->drawer, order);
 }
 
 void
@@ -222,7 +222,7 @@ l2d_sprite_set_on_anim_end(struct l2d_sprite* s, l2d_sprite_cb cb, void* userdat
 
 void
 l2d_sprite_set_effect(struct l2d_sprite* s, struct l2d_effect* e) {
-    drawer_set_effect(s->drawer, e);
+    l2d_drawer_set_effect(s->drawer, e);
 }
 
 static
@@ -256,7 +256,7 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
                 s->next_frame_in = s->playing_sequence->frames[s->current_frame].duration;
                 im = s->playing_sequence->frames[s->current_frame].image;
             }
-            drawer_set_image(s->drawer, im);
+            l2d_drawer_set_image(s->drawer, im);
             l2d_sprite_set_size(s, ib_image_get_width(im),
                     ib_image_get_height(im), s->flags);
             u_site = true;
@@ -279,7 +279,7 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
             site = &stack_site;
         }
         pass_down = site;
-        drawer_set_site(s->drawer, site);
+        l2d_drawer_set_site(s->drawer, site);
     }
 
     bool u_color = false;
@@ -288,7 +288,7 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
     u_color |= l2d_anim_step(&s->anims_b, dt, &s->color[2]);
     u_color |= l2d_anim_step(&s->anims_a, dt, &s->color[3]);
     if (u_color)
-        drawer_set_color(s->drawer, s->color);
+        l2d_drawer_set_color(s->drawer, s->color);
 
     if (!u_color && !u_site) {
         if (s->on_anim_end && s->animated_last_step) {
@@ -318,7 +318,7 @@ l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
     bool r = false;
     if (s->on_click) {
         float out[4];
-        if (site_intersect_point(drawer_get_site(s->drawer), x, y, out)) {
+        if (site_intersect_point(l2d_drawer_get_site(s->drawer), x, y, out)) {
             s->on_click(s->on_click_userdata, button, s, out);
             r = true;
         }
@@ -328,7 +328,7 @@ l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
 
 void
 l2d_sprite_blend(struct l2d_sprite* s, enum l2d_blend mode) {
-    drawer_blend(s->drawer, mode);
+    l2d_drawer_blend(s->drawer, mode);
 }
 
 void

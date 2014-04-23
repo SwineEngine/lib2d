@@ -15,12 +15,12 @@ struct l2d_target {
     int width, height;
     float scaleWidth, scaleHeight;
     unsigned int flags;
-    struct drawer* drawerList;
+    struct l2d_drawer* drawerList;
     struct sort_cache sort_cache;
     bool needsTextureAttached;
     uint32_t fbo;
     struct l2d_image* image;
-    struct drawer* drawer;
+    struct l2d_drawer* drawer;
     float color[4];
 
     struct l2d_target* next;
@@ -46,7 +46,7 @@ l2d_target_as_image(struct l2d_target*);
 
 // Returns the drawer that the target created. Will be null if
 // l2d_TARGET_MANAGE_DRAWER isn't set:
-struct drawer*
+struct l2d_drawer*
 l2d_target_as_drawer(struct l2d_target*);
 
 void
