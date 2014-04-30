@@ -359,6 +359,11 @@ ib_image_bind(struct l2d_image* image, int pixelSizeUniform, int32_t handle, int
 }
 
 void
+l2d_image_bind(struct l2d_image* image, int32_t handle, int texture_slot) {
+    ib_image_bind(image, -1, handle, texture_slot);
+}
+
+void
 ib_image_set_texture(struct l2d_image* image, struct texture* tex) {
     struct texture* oldTex = image->texture;
     ib_texture_incref(tex);

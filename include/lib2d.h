@@ -34,6 +34,9 @@ enum l2d_blend {
     l2d_BLEND_PREMULT,
 };
 
+struct l2d_image;
+struct l2d_resources;
+
 struct l2d_ident;
 typedef struct l2d_ident* l2d_ident;
 
@@ -45,6 +48,13 @@ l2d_ident_from_strn(const char* str, int len);
 
 const char*
 l2d_ident_as_char(l2d_ident);
+
+
+struct l2d_image*
+l2d_resources_load_image(struct l2d_resources*, l2d_ident, uint32_t flags);
+
+void
+l2d_image_bind(struct l2d_image*, int32_t handle, int texture_slot);
 
 
 struct l2d_anim;
@@ -60,7 +70,6 @@ l2d_anim_release_all(struct l2d_anim** anim_list);
 
 
 struct l2d_scene;
-struct l2d_resources;
 
 struct l2d_resources*
 l2d_init_default_resources();
@@ -70,6 +79,9 @@ l2d_scene_new(struct l2d_resources*);
 
 void
 l2d_scene_delete(struct l2d_scene*);
+
+struct l2d_resources*
+l2d_scene_get_resources(struct l2d_scene*);
 
 void
 l2d_scene_step(struct l2d_scene*, float dt);

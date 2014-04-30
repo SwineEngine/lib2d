@@ -34,6 +34,11 @@ l2d_scene_delete(struct l2d_scene* scene) {
     sbfree(scene->sprites);
 }
 
+struct l2d_resources*
+l2d_scene_get_resources(struct l2d_scene* scene) {
+    return scene->res;
+}
+
 void
 l2d_scene_step(struct l2d_scene* scene, float dt) {
     sbforeachv(struct l2d_sprite* s, scene->sprites) {
