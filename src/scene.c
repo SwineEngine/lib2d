@@ -9,10 +9,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define EXPORTED __attribute__((visibility("default")))
 
 void
 i_sprite_delete(struct l2d_sprite*);
 
+EXPORTED
 struct l2d_scene*
 l2d_scene_new(struct l2d_resources* r) {
     struct l2d_scene* scene = malloc(sizeof(struct l2d_scene));
@@ -25,6 +27,7 @@ l2d_scene_new(struct l2d_resources* r) {
     return scene;
 }
 
+EXPORTED
 void
 l2d_scene_delete(struct l2d_scene* scene) {
     ir_delete(scene->ir);
@@ -34,11 +37,13 @@ l2d_scene_delete(struct l2d_scene* scene) {
     sbfree(scene->sprites);
 }
 
+EXPORTED
 struct l2d_resources*
 l2d_scene_get_resources(struct l2d_scene* scene) {
     return scene->res;
 }
 
+EXPORTED
 void
 l2d_scene_step(struct l2d_scene* scene, float dt) {
     sbforeachv(struct l2d_sprite* s, scene->sprites) {
@@ -49,23 +54,27 @@ l2d_scene_step(struct l2d_scene* scene, float dt) {
     l2d_anim_step(&scene->anims_tz, dt, &scene->ir->translate[2]);
 }
 
+EXPORTED
 void
 l2d_scene_clear(struct l2d_scene* s, uint32_t color) {
     render_api_clear(color);
 }
 
+EXPORTED
 void
 l2d_scene_render(struct l2d_scene* s) {
     ib_upload_pending(s->res->ib);
     ir_render(s->ir);
 }
 
+EXPORTED
 void
 l2d_scene_set_viewport(struct l2d_scene* scene, int w, int h) {
     scene->ir->viewportWidth = w;
     scene->ir->viewportHeight = h;
 }
 
+EXPORTED
 void
 l2d_scene_set_translate(struct l2d_scene* scene, float x, float y, float z, float dt, uint32_t flags) {
     l2d_anim_new(&scene->anims_tx, x, dt, flags);
@@ -73,6 +82,7 @@ l2d_scene_set_translate(struct l2d_scene* scene, float x, float y, float z, floa
     l2d_anim_new(&scene->anims_tz, z, dt, flags);
 }
 
+EXPORTED
 bool
 l2d_scene_feed_click(struct l2d_scene* scene, float x, float y, int button) {
     bool r = false;

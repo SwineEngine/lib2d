@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define L_SIZE 1024
+#define EXPORTED __attribute__((visibility("default")))
 
 struct link {
     char* data;
@@ -51,6 +52,7 @@ findSpaceInLink(size_t length) {
     return newLink()->data;
 }
 
+EXPORTED
 l2d_ident
 l2d_ident_from_str(const char* str) {
     if (strlen(str) == 0)
@@ -90,6 +92,7 @@ l2d_ident_from_str(const char* str) {
     return (l2d_ident)c;
 }
 
+EXPORTED
 l2d_ident
 l2d_ident_from_strn(const char* str, int len) {
     assert(len < 255);
@@ -99,6 +102,7 @@ l2d_ident_from_strn(const char* str, int len) {
     return l2d_ident_from_str(s);
 }
 
+EXPORTED
 const char*
 l2d_ident_as_char(l2d_ident i) {
     return (const char*)i;

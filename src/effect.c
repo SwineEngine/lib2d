@@ -7,6 +7,8 @@
 #include <string.h>
 #include <assert.h>
 
+#define EXPORTED __attribute__((visibility("default")))
+
 static
 int
 map_input(struct l2d_effect* e, int input) {
@@ -68,6 +70,7 @@ new_comp(struct l2d_effect* e, int input, int input2, char* name) {
     return c;
 }
 
+EXPORTED
 struct l2d_effect*
 l2d_effect_new() {
     struct l2d_effect* e = (struct l2d_effect*)malloc(sizeof(struct l2d_effect));
@@ -79,6 +82,7 @@ l2d_effect_new() {
     return e;
 }
 
+EXPORTED
 void
 l2d_effect_delete(struct l2d_effect* e) {
     sbfree(e->stages);
@@ -90,6 +94,7 @@ l2d_effect_delete(struct l2d_effect* e) {
     free(e);
 }
 
+EXPORTED
 void
 l2d_effect_update_stages(struct l2d_effect* e) {
     // TODO rebuild stages if needed
@@ -147,6 +152,7 @@ l2d_effect_update_stages(struct l2d_effect* e) {
     }
 }
 
+EXPORTED
 void
 l2d_effect_color_matrix(struct l2d_effect* e, int input, float t[16]) {
     input = map_input(e, input);
@@ -166,12 +172,14 @@ l2d_effect_color_matrix(struct l2d_effect* e, int input, float t[16]) {
     memcpy(c->source, w, n+1);
 }
 
+EXPORTED
 void
 l2d_effect_fractal_noise(struct l2d_effect* e, int input,
         float frequency_x, float frequency_y,
         int octaves, int seed) {
 }
 
+EXPORTED
 void
 l2d_effect_convolve_matrix(struct l2d_effect* e, int input, float k[9]) {
     input = map_input(e, input);
@@ -208,6 +216,7 @@ l2d_effect_convolve_matrix(struct l2d_effect* e, int input, float k[9]) {
     c->source = replace_vars(vars, w, "");
 }
 
+EXPORTED
 void
 l2d_effect_erode(struct l2d_effect* e, int input) {
     input = map_input(e, input);
@@ -236,6 +245,7 @@ l2d_effect_erode(struct l2d_effect* e, int input) {
     c->source = replace_vars(vars, w, "");
 }
 
+EXPORTED
 void
 l2d_effect_dilate(struct l2d_effect* e, int input) {
     input = map_input(e, input);
@@ -264,6 +274,7 @@ l2d_effect_dilate(struct l2d_effect* e, int input) {
     c->source = replace_vars(vars, w, "");
 }
 
+EXPORTED
 void
 l2d_effect_blur_v(struct l2d_effect* e, int input) {
     input = map_input(e, input);
@@ -294,6 +305,7 @@ l2d_effect_blur_v(struct l2d_effect* e, int input) {
     c->source = replace_vars(vars, w, "");
 }
 
+EXPORTED
 void
 l2d_effect_blur_h(struct l2d_effect* e, int input) {
     input = map_input(e, input);
@@ -324,6 +336,7 @@ l2d_effect_blur_h(struct l2d_effect* e, int input) {
     c->source = replace_vars(vars, w, "");
 }
 
+EXPORTED
 void
 l2d_effect_blend(struct l2d_effect* e, int input, int input2,
         enum l2d_effect_blend mode) {

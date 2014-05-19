@@ -10,6 +10,8 @@
 #include "stretchy_buffer.h"
 #include "stb_image.c"
 
+#define EXPORTED __attribute__((visibility("default")))
+
 
 struct cache_entry {
     l2d_ident key;
@@ -71,6 +73,7 @@ str_ends_with(const char* s, const char* postfix) {
     return strcmp(s+strlen(s)-strlen(postfix), postfix) == 0;
 }
 
+EXPORTED
 struct l2d_resources*
 l2d_resources_new(struct l2d_image_bank* ib, void* userdata,
         struct resource_registry reg,
@@ -114,6 +117,7 @@ l2d_resources_new(struct l2d_image_bank* ib, void* userdata,
     return r;
 }
 
+EXPORTED
 void
 l2d_resources_delete(struct l2d_resources* r) {
     // TODO call userdata destructor
@@ -149,6 +153,7 @@ parse_hex(const char* s, uint8_t color[4], enum l2d_image_format* format) {
     return true;
 }
 
+EXPORTED
 void
 l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
         int width, int height, enum l2d_image_format format,
@@ -167,6 +172,7 @@ l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
     image_set_data(im, width, height, format, data, flags);
 }
 
+EXPORTED
 struct l2d_image*
 l2d_resources_load_image(struct l2d_resources* r, l2d_ident key, uint32_t flags) {
     for (int i=0; i<sbcount(r->image_cache); ++i) {
@@ -198,6 +204,7 @@ l2d_resources_load_image(struct l2d_resources* r, l2d_ident key, uint32_t flags)
     return image;
 }
 
+EXPORTED
 struct raw*
 l2d_resources_load_raw(struct l2d_resources* r, l2d_ident key) {
     if (!r->registry.load_raw) return NULL;
@@ -271,6 +278,7 @@ load_raw_func(void* userdata, const char* l2d_ident) {
     return raw;
 }
 
+EXPORTED
 struct l2d_resources*
 l2d_init_default_resources() {
     static struct l2d_resources* res = NULL;

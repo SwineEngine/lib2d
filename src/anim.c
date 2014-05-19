@@ -9,6 +9,7 @@ const double M_PI = 3.1415926535897931;
 #endif
 #define mix(a, b, r)((a)*(1-(r)) + (b)*(r))
 
+#define EXPORTED __attribute__((visibility("default")))
 
 struct l2d_anim {
     float to_v, start_v;
@@ -42,6 +43,7 @@ release_anim(struct l2d_anim* a) {
     sbpush(anim_pool, a);
 }
 
+EXPORTED
 bool
 l2d_anim_step(struct l2d_anim** first, float dt, float* dst) {
     if (*first == NULL) return false;
@@ -100,6 +102,7 @@ l2d_anim_step(struct l2d_anim** first, float dt, float* dst) {
     return true;
 }
 
+EXPORTED
 void
 l2d_anim_new(struct l2d_anim** anim_list, float to_v, float dt, uint32_t flags) {
     if (dt == 0) l2d_anim_release_all(anim_list);
@@ -124,6 +127,7 @@ l2d_anim_new(struct l2d_anim** anim_list, float to_v, float dt, uint32_t flags) 
     }
 }
 
+EXPORTED
 void
 l2d_anim_release_all(struct l2d_anim** anims) {
     struct l2d_anim* a = *anims;

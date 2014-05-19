@@ -3,7 +3,7 @@ project(lib2d)
 
 include_directories(include)
 
-add_definitions(-std=c99 -Wall -pedantic)
+add_definitions(-std=c99 -Wall -pedantic -fvisibility=hidden)
 
 set(SOURCES
     src/anim

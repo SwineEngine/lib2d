@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define EXPORTED __attribute__((visibility("default")))
+
 struct texture {
     int refcount;
     uint32_t native_ptr;
@@ -331,12 +333,14 @@ image_set_data(struct l2d_image* image,
     }
 }
 
+EXPORTED
 void
 l2d_image_set_nine_patch(struct l2d_image* image,
         struct l2d_nine_patch* patch) {
     image->nine_patch = patch;
 }
 
+EXPORTED
 struct l2d_nine_patch*
 l2d_image_get_nine_patch(struct l2d_image* image) {
     return image->nine_patch;
@@ -358,6 +362,7 @@ ib_image_bind(struct l2d_image* image, int pixelSizeUniform, int32_t handle, int
     }
 }
 
+EXPORTED
 void
 l2d_image_bind(struct l2d_image* image, int32_t handle, int texture_slot) {
     ib_image_bind(image, -1, handle, texture_slot);
