@@ -50,12 +50,6 @@ const char*
 l2d_ident_as_char(l2d_ident);
 
 
-struct l2d_image*
-l2d_resources_load_image(struct l2d_resources*, l2d_ident, uint32_t flags);
-
-void
-l2d_image_bind(struct l2d_image*, int32_t handle, int texture_slot);
-
 
 struct l2d_anim;
 
@@ -101,16 +95,6 @@ l2d_scene_set_translate(struct l2d_scene* scene, float x, float y, float z,
 
 bool
 l2d_scene_feed_click(struct l2d_scene*, float x, float y, int button);
-
-
-
-
-void
-l2d_set_image_data(struct l2d_scene*, l2d_ident image,
-        int width, int height, enum l2d_image_format,
-        void* data, uint32_t image_flags);
-
-
 
 
 /**
@@ -185,6 +169,9 @@ l2d_sprite_delete(struct l2d_sprite*);
 struct l2d_scene*
 l2d_sprite_get_scene(struct l2d_sprite*);
 
+void
+l2d_sprite_set_image(struct l2d_sprite*, struct l2d_image*);
+
 int
 l2d_sprite_get_image_width(struct l2d_sprite*);
 
@@ -258,5 +245,25 @@ l2d_sprite_sequence_play(struct l2d_sprite*, int sequence,
 
 void
 l2d_sprite_sequence_stop(struct l2d_sprite*);
+
+
+/**
+ * Image
+ */
+
+struct l2d_image*
+l2d_resources_load_image(struct l2d_resources*, l2d_ident, uint32_t flags);
+
+void
+l2d_image_bind(struct l2d_image*, int32_t handle, int texture_slot);
+
+void
+l2d_set_image_data(struct l2d_scene*, l2d_ident key,
+        int width, int height, enum l2d_image_format format,
+        void* data, uint32_t flags);
+
+struct l2d_image*
+l2d_image_new(struct l2d_scene*, int width, int height,
+        enum l2d_image_format format, void* data, uint32_t flags);
 
 #endif

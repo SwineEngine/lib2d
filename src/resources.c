@@ -154,6 +154,16 @@ parse_hex(const char* s, uint8_t color[4], enum l2d_image_format* format) {
 }
 
 EXPORTED
+struct l2d_image*
+l2d_image_new(struct l2d_scene* scene, int width, int height,
+        enum l2d_image_format format, void* data, uint32_t flags) {
+    struct l2d_image* im = ib_image_new(scene->res->ib);
+    ib_image_incref(im);
+    image_set_data(im, width, height, format, data, flags);
+    return im;
+}
+
+EXPORTED
 void
 l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
         int width, int height, enum l2d_image_format format,
