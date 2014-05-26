@@ -165,6 +165,12 @@ l2d_image_new(struct l2d_scene* scene, int width, int height,
 
 EXPORTED
 void
+l2d_image_release(struct l2d_image* im) {
+    ib_image_decref(im);
+}
+
+EXPORTED
+void
 l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
         int width, int height, enum l2d_image_format format,
         void* data, uint32_t flags) {

@@ -266,4 +266,10 @@ struct l2d_image*
 l2d_image_new(struct l2d_scene*, int width, int height,
         enum l2d_image_format format, void* data, uint32_t flags);
 
+/**
+ * Decrements reference counter.
+ */
+void
+l2d_image_release(struct l2d_image*);
+
 #endif

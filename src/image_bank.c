@@ -106,7 +106,7 @@ ib_image_new(struct l2d_image_bank* ib) {
     ib->imageList = image;
     image->prev = & ib->imageList;
 
-    image->refcount = 1;
+    image->refcount = 0;
 
     image->width = image->height = 0;
     image->texture = NULL;
@@ -271,7 +271,7 @@ struct texture*
 ib_texture_new(void) {
     struct texture* tex =
         (struct texture*)malloc(sizeof(struct texture));
-    tex->refcount = 1;
+    tex->refcount = 0;
     tex->native_ptr = 0;
     tex->width = 0;
     tex->height = 0;
@@ -318,6 +318,7 @@ image_set_data(struct l2d_image* image,
 
     if (image->texture) {
         ib_texture_decref(image->texture);
+        image->texture = NULL;
     }
     if (flags & l2d_IMAGE_NO_ATLAS) {
         ib_image_set_texture(image, ib_texture_new());
