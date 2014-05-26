@@ -152,6 +152,8 @@ l2d_sprite_get_scene(struct l2d_sprite* s) {
 EXPORTED
 void
 l2d_sprite_set_image(struct l2d_sprite* s, struct l2d_image* im) {
+    if (im == NULL)
+        im = l2d_resources_load_image(s->scene->res, l2d_ident_from_str("0xffffffff"), 0);
     ib_image_decref(s->image);
     s->image = im;
     ib_image_incref(s->image);
