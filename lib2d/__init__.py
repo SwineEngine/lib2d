@@ -28,9 +28,12 @@ THE SOFTWARE.
 __author__ = "Joseph Marshall <marshallpenguin@gmail.com>"
 __version__ = "0.0.1"
 
-_lib = _scene = None
+_lib = None
+_resources = None
+_scene = None
 
 import ctypes
+import weakref
 
 class flags:
     IMAGE_N_PATCH = 1<<0
@@ -54,7 +57,7 @@ class flags:
     BLEND_PREMULT = 2
 
 def init():
-    global _lib, _scene
+    global _lib, _resources, _scene
     try:
         import importlib.machinery
         f = importlib.machinery.PathFinder.find_module("_lib2d").path
@@ -62,22 +65,23 @@ def init():
         import imp
         f = imp.find_module("_lib2d")[1]
     _lib = ctypes.CDLL(f)
-    _scene = _lib.l2d_scene_new(_lib.l2d_init_default_resources())
+    _resources = _lib.l2d_init_default_resources()
+    _scene = Scene()
 
 def step(dt):
-    _lib.l2d_scene_step(_scene, ctypes.c_float(dt))
+    _lib.l2d_scene_step(_scene._ptr, ctypes.c_float(dt))
 
 def render():
-    _lib.l2d_scene_render(_scene)
+    _lib.l2d_scene_render(_scene._ptr)
 
 def clear(color=0):
-    _lib.l2d_scene_clear(_scene, ctypes.c_ulong(color))
+    _lib.l2d_scene_clear(_scene._ptr, ctypes.c_ulong(color))
 
 def set_viewport(w, h):
-    _lib.l2d_scene_set_viewport(_scene, int(w), int(h))
+    _lib.l2d_scene_set_viewport(_scene._ptr, int(w), int(h))
 
 def set_translate(x, y, z=0, dt=0, flags=0):
-    _lib.l2d_scene_set_translate(_scene,
+    _lib.l2d_scene_set_translate(_scene._ptr,
             ctypes.c_float(x),
             ctypes.c_float(y),
             ctypes.c_float(z),
@@ -85,8 +89,28 @@ def set_translate(x, y, z=0, dt=0, flags=0):
             int(flags))
 
 def feed_click(x, y, button=1):
-    return _lib.l2d_scene_feed_click(_scene, ctypes.c_float(x),
+    return _lib.l2d_scene_feed_click(_scene._ptr, ctypes.c_float(x),
             ctypes.c_float(y), int(button))
+
+def get_current_scene():
+    return _scene
+
+def set_current_scene(newscene):
+    global _scene
+    _scene = newscene
+
+
+class Scene:
+    def __init__(self):
+        self._ptr = _lib.l2d_scene_new(_resources)
+        self._sprites = set()
+        
+        def _delete():
+            for sprite in self._sprites:
+                sprite.finalizer()
+            self._sprites.clear()
+            _lib.l2d_scene_delete(self._ptr)
+        self.delete = weakref.finalize(self, _delete)
 
 
 class Sequence:
@@ -108,32 +132,39 @@ class Sequence:
 
 
 class Sprite:
-    # Make sure sprites are never GC'd before they are destroyed (b/c callbacks)
     __refs = set()
-    def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER):
-        Sprite.__refs.add(self)
+    def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER, scene = None):
+        # Make sure sprites are never GC'd before they are destroyed (b/c callbacks)
+        if scene is None:
+            scene = _scene
+        self.scene = scene
+        self.scene._sprites.add(self)
         self._anchor = anchor
         ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
-        self._ptr = _lib.l2d_sprite_new(_scene, ident, anchor)
+        self._ptr = _lib.l2d_sprite_new(_scene._ptr, ident, anchor)
         self._on_click = None
         self._on_anim_end = None
         self._parent = None
         self.sequences = {}
         if x or y:
             self.xy(x,y)
-
-    def destroy(self, fade_out_duration=0):
+        
         def cb():
             _lib.l2d_sprite_delete(self._ptr)
-            Sprite.__refs.remove(self)
+            self.scene._sprites.remove(self)
             self._ptr = 0
+            self.scene = None
             for s in self.sequences.values():
                 s._ptr = 0
+        self.finalizer = weakref.finalize(self, cb)
+        
+
+    def destroy(self, fade_out_duration=0):
         if fade_out_duration > 0.000001:
             self.a(0, fade_out_duration)
-            self.on_anim_end = cb
+            self.on_anim_end = self.finalizer
         else:
-            cb()
+            self.finalizer()
 
     @property
     def image_width(self):
