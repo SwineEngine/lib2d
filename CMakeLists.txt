@@ -11,6 +11,7 @@ set(SOURCES
     src/atlas_bank
     src/image_bank
     src/scene
+    src/siphash
     src/sprite
     src/ident
     src/renderer

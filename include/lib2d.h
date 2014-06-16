@@ -37,8 +37,7 @@ enum l2d_blend {
 struct l2d_image;
 struct l2d_resources;
 
-struct l2d_ident;
-typedef struct l2d_ident* l2d_ident;
+typedef uint64_t l2d_ident;
 
 l2d_ident
 l2d_ident_from_str(const char*);
