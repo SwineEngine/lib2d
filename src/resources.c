@@ -176,7 +176,14 @@ l2d_set_image_data(struct l2d_scene* scene, l2d_ident key,
         void* data, uint32_t flags) {
     struct l2d_resources* r = scene->res;
 
-    struct l2d_image* im = l2d_resources_load_image(r, key, flags);
+    struct l2d_image* im = NULL;
+    for (int i=0; i<sbcount(r->image_cache); ++i) {
+        struct cache_entry* e = &r->image_cache[i];
+        if (e->key == key) {
+            im = e->image;
+            break;
+        }
+    }
     if (!im) {
         im = ib_image_new(r->ib);
         struct cache_entry* e = sbadd(r->image_cache, 1);
