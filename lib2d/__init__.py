@@ -58,6 +58,8 @@ class flags:
 
 def init():
     global _lib, _resources, _scene
+    
+    # load the C library
     try:
         import importlib.machinery
         f = importlib.machinery.PathFinder.find_module("_lib2d").path
@@ -65,8 +67,28 @@ def init():
         import imp
         f = imp.find_module("_lib2d")[1]
     _lib = ctypes.CDLL(f)
+    
+    # set correct return types
+    _lib.l2d_ident_as_char.restype = ctypes.c_char_p
+    _lib.l2d_ident_from_str.restype = l2d_ident
+    
+    # initialize default resources and scene
     _resources = _lib.l2d_init_default_resources()
     _scene = Scene()
+
+
+l2d_ident = ctypes.c_uint64
+
+def l2d_ident_from_str(name):
+    bindata = name.encode("utf-8")
+    return _lib.l2d_ident_from_str(ctypes.c_char_p(bindata))
+
+def l2d_ident_as_char(ident):
+    retval = _lib.l2d_ident_as_char(l2d_ident(ident))
+    bindata = ctypes.cast(retval, ctypes.c_char_p)
+    name = bindata.value.decode("utf-8")
+    print(name, retval)
+    return name
 
 def step(dt):
     _lib.l2d_scene_step(_scene._ptr, ctypes.c_float(dt))
@@ -123,9 +145,9 @@ class Sequence:
                 int(start_frame), ctypes.c_float(speed_multiplier), flags)
 
     def add_frame(self, image, duration, image_flags=None):
-        ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
+        ident = l2d_ident_from_str(image)
         _lib.l2d_sprite_sequence_add_frame(self._ptr, self._index,
-                ident, ctypes.c_float(duration), image_flags)
+                l2d_ident(ident), ctypes.c_float(duration), image_flags)
 
     def stop(self):
         _lib.l2d_sprite_sequence_stop(self._ptr)
@@ -140,8 +162,8 @@ class Sprite:
         self.scene = scene
         self.scene._sprites.add(self)
         self._anchor = anchor
-        ident = _lib.l2d_ident_from_str(ctypes.c_char_p(image.encode('utf8')))
-        self._ptr = _lib.l2d_sprite_new(_scene._ptr, ident, anchor)
+        ident = l2d_ident_from_str(image)
+        self._ptr = _lib.l2d_sprite_new(_scene._ptr, l2d_ident(ident), anchor)
         self._on_click = None
         self._on_anim_end = None
         self._parent = None
