@@ -28,12 +28,9 @@ THE SOFTWARE.
 __author__ = "Joseph Marshall <marshallpenguin@gmail.com>"
 __version__ = "0.0.1"
 
-_lib = None
-_resources = None
-_scene = None
-
 import ctypes
 import weakref
+
 
 class flags:
     IMAGE_N_PATCH = 1<<0
@@ -56,8 +53,13 @@ class flags:
     BLEND_DEFAULT = 1
     BLEND_PREMULT = 2
 
+
+_lib = None
+_defaultresources = None
+
+
 def init():
-    global _lib, _resources, _scene
+    global _lib, _defaultresources
     
     # load the C library
     try:
@@ -72,9 +74,8 @@ def init():
     _lib.l2d_ident_as_char.restype = ctypes.c_char_p
     _lib.l2d_ident_from_str.restype = l2d_ident
     
-    # initialize default resources and scene
-    _resources = _lib.l2d_init_default_resources()
-    _scene = Scene()
+    # initialize default resources
+    _defaultresources = _lib.l2d_init_default_resources()
 
 
 l2d_ident = ctypes.c_uint64
@@ -90,49 +91,57 @@ def l2d_ident_as_char(ident):
     print(name, retval)
     return name
 
-def step(dt):
-    _lib.l2d_scene_step(_scene._ptr, ctypes.c_float(dt))
-
-def render():
-    _lib.l2d_scene_render(_scene._ptr)
-
-def clear(color=0):
-    _lib.l2d_scene_clear(_scene._ptr, ctypes.c_ulong(color))
-
-def set_viewport(w, h):
-    _lib.l2d_scene_set_viewport(_scene._ptr, int(w), int(h))
-
-def set_translate(x, y, z=0, dt=0, flags=0):
-    _lib.l2d_scene_set_translate(_scene._ptr,
-            ctypes.c_float(x),
-            ctypes.c_float(y),
-            ctypes.c_float(z),
-            ctypes.c_float(dt),
-            int(flags))
-
-def feed_click(x, y, button=1):
-    return _lib.l2d_scene_feed_click(_scene._ptr, ctypes.c_float(x),
-            ctypes.c_float(y), int(button))
-
-def get_current_scene():
-    return _scene
-
-def set_current_scene(newscene):
-    global _scene
-    _scene = newscene
-
 
 class Scene:
-    def __init__(self):
-        self._ptr = _lib.l2d_scene_new(_resources)
+    def __init__(self, resources=None):
+        if resources is None:
+            resources = _defaultresources
+        self.resources = resources
+        self._ptr = _lib.l2d_scene_new(self.resources)
+        
         self._sprites = set()
         
+        # prepare finalizer for sprites
         def _delete():
             for sprite in self._sprites:
                 sprite.finalizer()
             self._sprites.clear()
             _lib.l2d_scene_delete(self._ptr)
         self.delete = weakref.finalize(self, _delete)
+    
+    def make_sprite(self, *args, **kwargs):
+        # syntactic sugar: create sprites with
+        #     scene.make_sprite(...)
+        # which is equivalent to
+        #     lib2d.Sprite(scene=scene, ...)
+        return Sprite(*args, scene=self, **kwargs)
+    
+    def step(self, dt):
+        _lib.l2d_scene_step(self._ptr, ctypes.c_float(dt))
+    
+    def render(self):
+        _lib.l2d_scene_render(self._ptr)
+
+    def clear(self, color=0):
+        _lib.l2d_scene_clear(self._ptr, ctypes.c_ulong(color))
+
+    def set_viewport(self, w, h):
+        _lib.l2d_scene_set_viewport(self._ptr, int(w), int(h))
+
+    def set_translate(self, x, y, z=0, dt=0, flags=0):
+        _lib.l2d_scene_set_translate(self._ptr,
+                                     ctypes.c_float(x),
+                                     ctypes.c_float(y),
+                                     ctypes.c_float(z),
+                                     ctypes.c_float(dt),
+                                     int(flags))
+
+    def feed_click(self, x, y, button=1):
+        return _lib.l2d_scene_feed_click(self._ptr,
+                                         ctypes.c_float(x),
+                                         ctypes.c_float(y),
+                                         int(button))
+
 
 
 class Sequence:
@@ -155,15 +164,15 @@ class Sequence:
 
 class Sprite:
     __refs = set()
-    def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER, scene = None):
+    def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER, scene=None):
         # Make sure sprites are never GC'd before they are destroyed (b/c callbacks)
         if scene is None:
-            scene = _scene
+            scene = _defaultscene
         self.scene = scene
         self.scene._sprites.add(self)
         self._anchor = anchor
         ident = l2d_ident_from_str(image)
-        self._ptr = _lib.l2d_sprite_new(_scene._ptr, l2d_ident(ident), anchor)
+        self._ptr = _lib.l2d_sprite_new(self.scene._ptr, l2d_ident(ident), anchor)
         self._on_click = None
         self._on_anim_end = None
         self._parent = None

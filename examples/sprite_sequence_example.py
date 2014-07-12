@@ -7,8 +7,8 @@ from demo import demo
 
 class Demo:
     SEQUENCES = ("climb",2), ("swim",2), ("walk",2), ("duck",1)
-    def setup(self):
-        s = lib2d.Sprite("anim/alienGreen.png")
+    def setup(self, scene):
+        s = scene.make_sprite("anim/alienGreen.png")
         s.xy(320, 240)
         self.s = s
 

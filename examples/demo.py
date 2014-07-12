@@ -7,12 +7,13 @@ class WinInfo:
     h = 480
     x = 0
     y = 0
+    scene = None
 
     @classmethod
     def set_translate(cls, x, y):
         cls.x = x
         cls.y = y
-        lib2d.set_translate(x,y, dt=.3, flags=lib2d.flags.ANIM_EASE_IN)
+        scene.set_translate(x,y, dt=.3, flags=lib2d.flags.ANIM_EASE_IN)
 
     @classmethod
     def transform(cls, x, y):
@@ -39,8 +40,10 @@ def demo(title, setup, on_click=None, framelock=True):
 
     lib2d.init()
 
+    scene = lib2d.Scene()
+    WinInfo.scene = scene
 
-    setup()
+    setup(scene)
 
 
     running = True
@@ -76,15 +79,15 @@ def demo(title, setup, on_click=None, framelock=True):
                     WinInfo.h = event.window.data2
 
             elif event.type == SDL_MOUSEBUTTONDOWN:
-                r = lib2d.feed_click(
+                r = scene.feed_click(
                         *WinInfo.transform(event.button.x, event.button.y),
                         button=event.button.button)
                 if not r and on_click:
                     on_click(event.button.x, event.button.y)
 
-        lib2d.step(dt*0.001)
-        lib2d.clear()
-        lib2d.render()
+        scene.step(dt*0.001)
+        scene.clear()
+        scene.render()
         SDL_GL_SwapWindow(win);
         
     SDL_DestroyWindow(win)
