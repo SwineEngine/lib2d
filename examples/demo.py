@@ -74,7 +74,7 @@ def demo(title, setup, on_click=None, framelock=True):
                 break
             elif event.type == SDL_WINDOWEVENT:
                 if event.window.event == SDL_WINDOWEVENT_RESIZED:
-                    lib2d.set_viewport(event.window.data1, event.window.data2)
+                    scene.set_viewport(event.window.data1, event.window.data2)
                     WinInfo.w = event.window.data1
                     WinInfo.h = event.window.data2
 
