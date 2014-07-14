@@ -58,6 +58,9 @@ _lib = None
 _defaultresources = None
 
 
+def clear(color=0):
+    _lib.l2d_clear(ctypes.c_ulong(color))
+
 def init():
     global _lib, _defaultresources
     
@@ -121,9 +124,6 @@ class Scene:
     
     def render(self):
         _lib.l2d_scene_render(self._ptr)
-
-    def clear(self, color=0):
-        _lib.l2d_scene_clear(self._ptr, ctypes.c_ulong(color))
 
     def set_viewport(self, w, h):
         _lib.l2d_scene_set_viewport(self._ptr, int(w), int(h))

@@ -56,7 +56,7 @@ l2d_scene_step(struct l2d_scene* scene, float dt) {
 
 EXPORTED
 void
-l2d_scene_clear(struct l2d_scene* s, uint32_t color) {
+l2d_clear(uint32_t color) {
     render_api_clear(color);
 }
 

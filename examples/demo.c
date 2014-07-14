@@ -64,8 +64,8 @@ main(int argc, char** argv) {
             }
         }
 
+        l2d_clear(0x0);
         l2d_scene_step(scene, dt * .001f);
-        l2d_scene_clear(scene, 0x0);
         l2d_scene_render(scene);
         SDL_GL_SwapWindow(win);
     }

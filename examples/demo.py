@@ -86,7 +86,7 @@ def demo(title, setup, on_click=None, framelock=True):
                     on_click(event.button.x, event.button.y)
 
         scene.step(dt*0.001)
-        scene.clear()
+        lib2d.clear()
         scene.render()
         SDL_GL_SwapWindow(win);
         

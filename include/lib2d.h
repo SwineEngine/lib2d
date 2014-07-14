@@ -48,7 +48,8 @@ l2d_ident_from_strn(const char* str, int len);
 const char*
 l2d_ident_as_char(l2d_ident);
 
-
+void
+l2d_clear(uint32_t color);
 
 struct l2d_anim;
 
@@ -78,9 +79,6 @@ l2d_scene_get_resources(struct l2d_scene*);
 
 void
 l2d_scene_step(struct l2d_scene*, float dt);
-
-void
-l2d_scene_clear(struct l2d_scene*, uint32_t color);
 
 void
 l2d_scene_render(struct l2d_scene*);
