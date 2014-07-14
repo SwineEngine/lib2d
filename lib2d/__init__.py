@@ -29,7 +29,7 @@ __author__ = "Joseph Marshall <marshallpenguin@gmail.com>"
 __version__ = "0.0.1"
 
 import ctypes
-import weakref
+import lib2d.finalizer
 
 
 class flags:
@@ -92,11 +92,10 @@ def l2d_ident_as_char(ident):
     retval = _lib.l2d_ident_as_char(l2d_ident(ident))
     bindata = ctypes.cast(retval, ctypes.c_char_p)
     name = bindata.value.decode("utf-8")
-    print(name, retval)
     return name
 
 
-class Scene:
+class Scene(object):
     def __init__(self, resources=None):
         if resources is None:
             resources = _defaultresources
@@ -108,14 +107,15 @@ class Scene:
         
         self._sprites = set()
         
-        # prepare finalizer for sprites
-        def _delete():
-            for sprite in self._sprites:
-                sprite.finalizer()
-            self._sprites.clear()
-            _lib.l2d_scene_delete(self._ptr)
-        self.delete = weakref.finalize(self, _delete)
+        self.delete = finalizer.finalize(self, self.__delete)
     
+    def __delete(self):
+        for sprite in self._sprites:
+            sprite.finalizer()
+        self._sprites.clear()
+        _lib.l2d_scene_delete(self._ptr)
+        self._ptr = 0
+
     # JLM I'm not the biggest fan of factory functions like this.
     def make_sprite(self, *args, **kwargs):
         """
@@ -151,7 +151,7 @@ class Scene:
 
 
 
-class Sequence:
+class Sequence(object):
     def __init__(self, sprite_ptr, index):
         self._ptr = sprite_ptr
         self._index = index
@@ -169,7 +169,7 @@ class Sequence:
         _lib.l2d_sprite_sequence_stop(self._ptr)
 
 
-class Sprite:
+class Sprite(object):
     def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER, scene=None):
         """
         image
@@ -202,15 +202,15 @@ class Sprite:
         if x or y:
             self.xy(x,y)
         
-        def cb():
-            _lib.l2d_sprite_delete(self._ptr)
-            self.scene._sprites.remove(self)
-            self._ptr = 0
-            self.scene = None
-            for s in self.sequences.values():
-                s._ptr = 0
-        self.finalizer = weakref.finalize(self, cb)
+        self.finalizer = finalizer.finalize(self, self.__delete)
         
+    def __delete(self):
+        _lib.l2d_sprite_delete(self._ptr)
+        self.scene._sprites.remove(self)
+        self._ptr = 0
+        self.scene = None
+        for s in self.sequences.values():
+            s._ptr = 0
 
     def destroy(self, fade_out_duration=0):
         if fade_out_duration > 0.000001:
@@ -337,7 +337,7 @@ class Sprite:
         return s
 
 
-class Effect:
+class Effect(object):
     """
     Creates an effect that can be applied to Sprites.
 
