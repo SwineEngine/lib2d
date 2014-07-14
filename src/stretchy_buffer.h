@@ -36,6 +36,7 @@
 #define stb__sbmaybegrow(a,n) (stb__sbneedgrow(a,(n)) ? stb__sbgrow(a,n) : (void)0)
 #define stb__sbgrow(a,n)  stb__sbgrowf((void **) &(a), (n), sizeof(*(a)))
 
+__attribute__ ((unused))
 static void stb__sbgrowf(void **arr, int increment, int itemsize)
 {
    int m = *arr ? 2*stb__sbm(*arr)+increment : increment+1;
