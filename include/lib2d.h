@@ -190,6 +190,11 @@ l2d_sprite_set_on_click(struct l2d_sprite*, l2d_event_cb, void*);
 void
 l2d_sprite_set_on_anim_end(struct l2d_sprite*, l2d_sprite_cb, void*);
 
+// Useful for when you want on_anim_end to trigger when fading out while still
+// having continuous animations running.
+void
+l2d_sprite_set_stop_anims_on_hide(struct l2d_sprite*, bool);
+
 void
 l2d_sprite_set_effect(struct l2d_sprite*, struct l2d_effect*);
 

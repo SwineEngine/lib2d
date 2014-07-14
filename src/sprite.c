@@ -7,6 +7,7 @@
 #include "primitives.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #define EXPORTED __attribute__((visibility("default")))
 
@@ -49,6 +50,7 @@ struct l2d_sprite {
     void* on_anim_end_userdata;
     bool animated_last_step;
     bool has_new_parent;
+    bool stop_anims_on_hide;
 };
 
 EXPORTED
@@ -101,6 +103,7 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->on_anim_end_userdata = NULL;
     s->animated_last_step = false;
     s->has_new_parent = false;
+    s->stop_anims_on_hide = false;
     return s;
 }
 
@@ -246,6 +249,12 @@ l2d_sprite_set_on_anim_end(struct l2d_sprite* s, l2d_sprite_cb cb, void* userdat
 
 EXPORTED
 void
+l2d_sprite_set_stop_anims_on_hide(struct l2d_sprite* s, bool v) {
+    s->stop_anims_on_hide = s;
+}
+
+EXPORTED
+void
 l2d_sprite_set_effect(struct l2d_sprite* s, struct l2d_effect* e) {
     l2d_drawer_set_effect(s->drawer, e);
 }
@@ -314,6 +323,10 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
     u_color |= l2d_anim_step(&s->anims_a, dt, &s->color[3]);
     if (u_color)
         l2d_drawer_set_color(s->drawer, s->color);
+
+    if (s->stop_anims_on_hide && fabsf(s->color[3]) < 0.000001f) {
+        l2d_sprite_abort_anim(s);
+    }
 
     if (!u_color && !u_site) {
         if (s->on_anim_end && s->animated_last_step) {

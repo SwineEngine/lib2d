@@ -215,6 +215,7 @@ class Sprite(object):
     def destroy(self, fade_out_duration=0):
         if fade_out_duration > 0.000001:
             self.a(0, fade_out_duration)
+            self.set_stop_anims_on_hide(True)
             self.on_anim_end = self.finalizer
         else:
             self.finalizer()
@@ -268,6 +269,10 @@ class Sprite(object):
         if not cb:
             _lib.l2d_sprite_set_on_click(self._ptr, None, None)
             self.__cbptr_onclick = None
+
+
+    def set_stop_anims_on_hide(self, v):
+        _lib.l2d_sprite_set_stop_anims_on_hide(self._ptr, v)
 
     @property
     def on_anim_end(self):
