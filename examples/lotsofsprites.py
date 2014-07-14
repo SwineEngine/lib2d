@@ -7,7 +7,7 @@ def setup(scene):
     r = lambda: random.random()
 
     for i in range(2400):
-        s = scene.make_sprite("rounded_square.png")
+        s = lib2d.Sprite("rounded_square.png")
         s.blend(lib2d.flags.BLEND_PREMULT)
         s.rgba(.5, .2, 1, .2)
         s.rgba(0, .8, 0, .6, 3*r()+2, lib2d.flags.ANIM_REVERSE)

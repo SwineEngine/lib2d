@@ -56,6 +56,7 @@ class flags:
 
 _lib = None
 _defaultresources = None
+_defaultscene = None
 
 
 def clear(color=0):
@@ -99,6 +100,9 @@ class Scene:
     def __init__(self, resources=None):
         if resources is None:
             resources = _defaultresources
+        global _defaultscene
+        if _defaultscene is None:
+            _defaultscene = self
         self.resources = resources
         self._ptr = _lib.l2d_scene_new(self.resources)
         
@@ -112,11 +116,14 @@ class Scene:
             _lib.l2d_scene_delete(self._ptr)
         self.delete = weakref.finalize(self, _delete)
     
+    # JLM I'm not the biggest fan of factory functions like this.
     def make_sprite(self, *args, **kwargs):
-        # syntactic sugar: create sprites with
-        #     scene.make_sprite(...)
-        # which is equivalent to
-        #     lib2d.Sprite(scene=scene, ...)
+        """
+        syntactic sugar: create sprites with
+            scene.make_sprite(...)
+        which is equivalent to
+            lib2d.Sprite(scene=scene, ...)
+        """
         return Sprite(*args, scene=self, **kwargs)
     
     def step(self, dt):
@@ -163,10 +170,25 @@ class Sequence:
 
 
 class Sprite:
-    __refs = set()
     def __init__(self, image="", x=0, y=0, anchor=flags.ANCHOR_CENTER, scene=None):
-        # Make sure sprites are never GC'd before they are destroyed (b/c callbacks)
+        """
+        image
+            A key to specify the texture data. The default resource manager
+            will map a provided string to the file system.
+
+            Keys can also be registered mapping to texture data provided by
+            `lib2d.set_image_data`
+
+        anchor
+            How the sprite is anchored around it's x and y. See `lib2d.flags`
+
+        scene
+            Which scene to add this sprite to. If None it will add it to the
+            default scene. (The scene created first is set as default.)
+        """
         if scene is None:
+            if _defaultscene is None:
+                raise ValueError("No scene has been created yet. See `lib2d.Scene`")
             scene = _defaultscene
         self.scene = scene
         self.scene._sprites.add(self)
@@ -355,4 +377,11 @@ class Effect:
         _lib.l2d_effect_erode(self._ptr, ctypes.c_int(input))
 
 
-__all__ = ['init', 'step', 'render', 'set_viewport', 'set_translate', 'clear', 'Sprite', 'Effect', 'flags']
+def set_image_data():
+    """
+    TODO
+    """
+    raise NotImplementedError("TODO l2d_set_image_data")
+
+
+__all__ = ['init', 'clear', 'Scene', 'Sprite', 'Effect', 'flags', 'set_image_data']
