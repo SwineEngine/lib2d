@@ -13,13 +13,11 @@ const static uint32_t l2d_SPRITE_ANCHOR_TOP = 1<<11;
 const static uint32_t l2d_SPRITE_ANCHOR_RIGHT = 1<<12;
 const static uint32_t l2d_SPRITE_ANCHOR_BOTTOM = 1<<13;
 
-
 const static uint32_t l2d_ANIM_REPEAT = 1<<0;
 const static uint32_t l2d_ANIM_REVERSE = 1<<1;
 const static uint32_t l2d_ANIM_EXTRAPOLATE = 1<<2;
 const static uint32_t l2d_ANIM_EASE_IN = 1<<3;
 const static uint32_t l2d_ANIM_EASE_OUT = 1<<4;
-
 
 enum l2d_image_format {
     l2d_IMAGE_FORMAT_RGBA_8888,
@@ -37,6 +35,19 @@ enum l2d_blend {
 struct l2d_image;
 struct l2d_resources;
 
+
+void
+l2d_clear(uint32_t color);
+
+struct l2d_resources*
+l2d_init_default_resources();
+
+
+/**
+ * Identifiers
+ *
+ * l2d_ident is lib2d's way of handling strings.
+ */
 typedef uint64_t l2d_ident;
 
 l2d_ident
@@ -48,9 +59,10 @@ l2d_ident_from_strn(const char* str, int len);
 const char*
 l2d_ident_as_char(l2d_ident);
 
-void
-l2d_clear(uint32_t color);
 
+/**
+ * Animations
+ */
 struct l2d_anim;
 
 void
@@ -63,10 +75,10 @@ void
 l2d_anim_release_all(struct l2d_anim** anim_list);
 
 
+/**
+ * Scene
+ */
 struct l2d_scene;
-
-struct l2d_resources*
-l2d_init_default_resources();
 
 struct l2d_scene*
 l2d_scene_new(struct l2d_resources*);
@@ -176,7 +188,7 @@ int
 l2d_sprite_get_image_height(struct l2d_sprite*);
 
 void
-l2d_sprite_set_parent(struct l2d_sprite*, struct l2d_sprite*);
+l2d_sprite_set_parent(struct l2d_sprite*, struct l2d_sprite* parent);
 
 void
 l2d_sprite_set_size(struct l2d_sprite*, int w, int h, uint32_t sprite_flags);

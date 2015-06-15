@@ -1,0 +1,8 @@
+[package]
+
+name = "lib2d"
+version = "0.0.3"
+authors = ["Joseph Marshall <marshallpenguin@gmail.com>"]
+
+[dependencies]
+libc = "*"
