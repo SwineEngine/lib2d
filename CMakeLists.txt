@@ -39,7 +39,32 @@ endif()
 
 add_library(lib2d SHARED ${SOURCES})
 
-target_link_libraries(lib2d GL m)
+if (IOS)
+    macro(ADD_FRAMEWORK fwname appname)
+        find_library(FRAMEWORK_${fwname}
+            NAMES ${fwname}
+            PATHS ${CMAKE_IOS_SDK_ROOT}/System/Library
+            PATH_SUFFIXES Frameworks
+            NO_DEFAULT_PATH)
+        if( ${FRAMEWORK_${fwname}} STREQUAL FRAMEWORK_${fwname}-NOTFOUND)
+            MESSAGE(ERROR ": Framework ${fwname} not found")
+        else()
+            TARGET_LINK_LIBRARIES(${appname} ${FRAMEWORK_${fwname}})
+            MESSAGE(STATUS "Framework ${fwname} found at ${FRAMEWORK_${fwname}}")
+        endif()
+    endmacro(ADD_FRAMEWORK)
+    ADD_FRAMEWORK(OpenGLES lib2d m)
+elseif(APPLE)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(lib2d ${OPENGL_LIBRARIES} m)
+elseif(WIN32)
+    target_link_libraries(lib2d opengl32)
+elseif(BROADCOM_LINUX)
+    target_link_libraries(lib2d khronos m)
+else()
+    target_link_libraries(lib2d GL m)
+endif()
+
 
 install(TARGETS lib2d DESTINATION lib)
 install(FILES
