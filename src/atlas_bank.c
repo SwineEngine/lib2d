@@ -28,7 +28,7 @@ struct atlas_ref {
 }; 
 
 struct atlas_bank {
-    struct atlas_ref* atlas_refs; // stretchy_buffer
+    struct atlas_ref** atlas_refs; // stretchy_buffer
 };
 
 struct atlas_bank*
@@ -47,7 +47,7 @@ bool
 atlas_bank_resolve(struct atlas_bank* bank, struct l2d_image_bank* ib) {
     bool reresolve = false;
     bool found_dirty = false;
-    sbforeachp(struct atlas_ref* ref, bank->atlas_refs) {
+    sbforeachv(struct atlas_ref* ref, bank->atlas_refs) {
         if (!ref->dirty) continue;
         found_dirty = true;
         ref->dirty = false;
@@ -137,7 +137,8 @@ create_atlas(struct atlas_bank* bank, enum l2d_image_format format) {
     case l2d_IMAGE_FORMAT_A_8: bpp = 1; break;
     default: assert(false);
     }
-    struct atlas_ref* ref = sbadd(bank->atlas_refs, 1);
+    struct atlas_ref* ref = malloc(sizeof(struct atlas_ref));
+    sbpush(bank->atlas_refs, ref);
     ref->atlas = atlas_new(bpp);
     ref->texture = ib_texture_new();
     ib_texture_incref(ref->texture);
@@ -150,7 +151,7 @@ static
 struct atlas_ref*
 get_or_create_atlas(struct atlas_bank* bank, enum l2d_image_format format) {
     for (int i=sbcount(bank->atlas_refs)-1; i>=0; i--) {
-        struct atlas_ref* ref = &bank->atlas_refs[i];
+        struct atlas_ref* ref = bank->atlas_refs[i];
         if (ref->format == format)
             return ref;
     }
