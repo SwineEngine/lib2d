@@ -1,6 +1,7 @@
 #include <lib2d.h>
 #include <stdlib.h>
 #include <stdio.h>
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_events.h>
