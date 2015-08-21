@@ -31,7 +31,8 @@ struct l2d_sprite {
     float rot;
     struct l2d_anim* anims_x; // linked list
     struct l2d_anim* anims_y; // linked list
-    struct l2d_anim* anims_scale; // linked list
+    struct l2d_anim* anims_scale_x; // linked list
+    struct l2d_anim* anims_scale_y; // linked list
     struct l2d_anim* anims_rot; // linked list
     struct l2d_anim* anims_r, *anims_g, *anims_b, *anims_a; // linked list
 
@@ -84,7 +85,8 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
 
     s->anims_x = NULL;
     s->anims_y = NULL;
-    s->anims_scale = NULL;
+    s->anims_scale_x = NULL;
+    s->anims_scale_y = NULL;
     s->anims_rot = NULL;
     s->anims_r = NULL;
     s->anims_g = NULL;
@@ -303,7 +305,8 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
 
     u_site |= l2d_anim_step(&s->anims_x, dt, &s->site.x);
     u_site |= l2d_anim_step(&s->anims_y, dt, &s->site.y);
-    u_site |= l2d_anim_step(&s->anims_scale, dt, &s->site.scale);
+    u_site |= l2d_anim_step(&s->anims_scale_x, dt, &s->site.scale_x);
+    u_site |= l2d_anim_step(&s->anims_scale_y, dt, &s->site.scale_y);
     if (u_site || parent_changed) {
         struct site* site = &s->site;
         if (parent_site) {
@@ -403,7 +406,20 @@ l2d_sprite_xy(struct l2d_sprite* s, float x, float y, float dt, uint32_t flags) 
 EXPORTED
 void
 l2d_sprite_scale(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
-    l2d_anim_new(&s->anims_scale, scale, dt, flags);
+    l2d_anim_new(&s->anims_scale_x, scale, dt, flags);
+    l2d_anim_new(&s->anims_scale_y, scale, dt, flags);
+}
+
+EXPORTED
+void
+l2d_sprite_scale_x(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
+    l2d_anim_new(&s->anims_scale_x, scale, dt, flags);
+}
+
+EXPORTED
+void
+l2d_sprite_scale_y(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
+    l2d_anim_new(&s->anims_scale_y, scale, dt, flags);
 }
 
 EXPORTED
@@ -439,7 +455,8 @@ void
 l2d_sprite_abort_anim(struct l2d_sprite* s) {
     l2d_anim_release_all(&s->anims_x);
     l2d_anim_release_all(&s->anims_y);
-    l2d_anim_release_all(&s->anims_scale);
+    l2d_anim_release_all(&s->anims_scale_x);
+    l2d_anim_release_all(&s->anims_scale_y);
     l2d_anim_release_all(&s->anims_rot);
     l2d_anim_release_all(&s->anims_r);
     l2d_anim_release_all(&s->anims_g);

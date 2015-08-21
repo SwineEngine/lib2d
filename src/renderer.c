@@ -66,7 +66,7 @@ premult_site_to_matrix(struct matrix* m, struct site const* site) {
         matrix_multiply_matrix(&m2, m, &quat_m);
         *m = m2;
     }
-    matrix_scale_inplace(m, site->scale, site->scale, site->scale);
+    matrix_scale_inplace(m, site->scale_x, site->scale_y, 1);
     matrix_translate_inplace(m, site->rect.l, site->rect.t, 0.f);
 }
 
@@ -973,10 +973,8 @@ batch_flush(struct batch* batch,
             matrix_scale_inplace(&m1, 1.f/(site->rect.r-site->rect.l),
                     1.f/(site->rect.b-site->rect.t), 1.f);
 
-            matrix_translate_inplace(&m1, -site->rect.l, -site->rect.t,
-                    0.f);
-            float scale = 1.f/site->scale;
-            matrix_scale_inplace(&m1, scale, scale, scale);
+            matrix_translate_inplace(&m1, -site->rect.l, -site->rect.t, 0.f);
+            matrix_scale_inplace(&m1, 1.0/site->scale_x, 1.0/site->scale_y, 1.0);
 
             struct matrix m2;
             if (site->quaternion.w != 1.f) {

@@ -13,7 +13,7 @@ struct site {
     struct rect rect;
     struct quaternion quaternion;
     float x, y, z;
-    float scale;
+    float scale_x, scale_y;
     float wrap[4];
 };
 

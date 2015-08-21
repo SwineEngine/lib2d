@@ -228,6 +228,12 @@ void
 l2d_sprite_scale(struct l2d_sprite*, float scale, float dt, uint32_t anim_flags);
 
 void
+l2d_sprite_scale_x(struct l2d_sprite*, float scale, float dt, uint32_t anim_flags);
+
+void
+l2d_sprite_scale_y(struct l2d_sprite*, float scale, float dt, uint32_t anim_flags);
+
+void
 l2d_sprite_rot(struct l2d_sprite*, float rot, float dt, uint32_t anim_flags);
 
 void

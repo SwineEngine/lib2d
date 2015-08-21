@@ -29,7 +29,8 @@ site_copy(struct site* dest, struct site const* source) {
     dest->x = source->x;
     dest->y = source->y;
     dest->z = source->z;
-    dest->scale = source->scale;
+    dest->scale_x = source->scale_x;
+    dest->scale_y = source->scale_y;
     dest->wrap[0] = source->wrap[0];
     dest->wrap[1] = source->wrap[1];
     dest->wrap[2] = source->wrap[2];
@@ -40,15 +41,16 @@ void
 site_apply_parent(struct site* dest, struct site const* parent) {
     quaternion_multiply(&dest->quaternion, &dest->quaternion, &parent->quaternion);
     float vec[3];
-    vec[0] = dest->x * parent->scale;
-    vec[1] = dest->y * parent->scale;
-    vec[2] = dest->z * parent->scale;
+    vec[0] = dest->x * parent->scale_x;
+    vec[1] = dest->y * parent->scale_y;
+    vec[2] = dest->z;
     if (parent->quaternion.w != 1.f)
         quaternion_multiply_vector(vec, &parent->quaternion, vec);
     dest->x = vec[0]+site_wrap(parent->x, parent->wrap);
     dest->y = vec[1]+site_wrap(parent->y, parent->wrap+2);
     dest->z = vec[2]+parent->z;
-    dest->scale *= parent->scale;
+    dest->scale_x *= parent->scale_x;
+    dest->scale_y *= parent->scale_y;
 }
 
 void
@@ -64,7 +66,8 @@ site_init(struct site* site) {
     site->x = 0.f;
     site->y = 0.f;
     site->z = 0.f;
-    site->scale = 1.f;
+    site->scale_x = 1.f;
+    site->scale_y = 1.f;
     site->wrap[0] = 0;
     site->wrap[1] = 0;
     site->wrap[2] = 0;
@@ -78,8 +81,8 @@ site_intersect_point(struct site const* site,
     x -= site_wrap(site->x, site->wrap);
     y -= site_wrap(site->y, site->wrap+2);
     // make relative to scale:
-    x /= site->scale;
-    y /= site->scale;
+    x /= site->scale_x;
+    y /= site->scale_y;
 
     // TODO account for z
 
