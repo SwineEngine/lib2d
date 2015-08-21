@@ -35,13 +35,13 @@ main(int argc, char** argv) {
     while (running) {
         uint32_t now = SDL_GetTicks();
         int dt = now-frame_start;
-        frame_start = SDL_GetTicks();
         next_print -= dt;
         frames_past += 1;
         if (dt < 1) {
             SDL_Delay(1);
             dt = 1;
         }
+        frame_start = SDL_GetTicks();
 
         if (next_print <= 0) {
             char title[32];
