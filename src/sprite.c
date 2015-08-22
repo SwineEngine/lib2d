@@ -66,21 +66,8 @@ l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     s->drawer = l2d_drawer_new(scene->ir);
     sbpush(scene->sprites, s);
 
-    struct l2d_image* im = NULL;
-    if (image) im = l2d_resources_load_image(scene->res, image, flags);
-    if (im) {
-        l2d_drawer_set_image(s->drawer, im);
-        l2d_sprite_set_size(s, ib_image_get_width(im), ib_image_get_height(im),
-                flags);
-    } else {
-        if (image)
-            printf("WARNING: No image '%s'\n", l2d_ident_as_char(image));
-        im = l2d_resources_load_image(scene->res, l2d_ident_from_str("0xffffffff"), 0);
-        l2d_drawer_set_image(s->drawer, im);
-        l2d_sprite_set_size(s, 64, 64, flags);
-    }
-    s->image = im;
-    ib_image_incref(s->image);
+    s->image = NULL;
+    l2d_sprite_set_image(s, image, flags);
     s->rot = 0;
 
     s->anims_x = NULL;
@@ -156,13 +143,24 @@ l2d_sprite_get_scene(struct l2d_sprite* s) {
 
 EXPORTED
 void
-l2d_sprite_set_image(struct l2d_sprite* s, struct l2d_image* im) {
-    if (im == NULL)
+l2d_sprite_set_image(struct l2d_sprite* s, l2d_ident image, uint32_t flags) {
+    struct l2d_image* im = NULL;
+    if (image) im = l2d_resources_load_image(s->scene->res, image, flags);
+    if (im) {
+        l2d_drawer_set_image(s->drawer, im);
+        l2d_sprite_set_size(s, ib_image_get_width(im), ib_image_get_height(im),
+                flags);
+    } else {
+        if (image)
+            printf("WARNING: No image '%s'\n", l2d_ident_as_char(image));
         im = l2d_resources_load_image(s->scene->res, l2d_ident_from_str("0xffffffff"), 0);
-    ib_image_decref(s->image);
+        l2d_drawer_set_image(s->drawer, im);
+        l2d_sprite_set_size(s, 64, 64, flags);
+    }
+    if (s->image)
+        ib_image_decref(s->image);
     s->image = im;
     ib_image_incref(s->image);
-    l2d_drawer_set_image(s->drawer, im);
 }
 
 EXPORTED

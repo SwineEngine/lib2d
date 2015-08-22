@@ -179,7 +179,7 @@ struct l2d_scene*
 l2d_sprite_get_scene(struct l2d_sprite*);
 
 void
-l2d_sprite_set_image(struct l2d_sprite*, struct l2d_image*);
+l2d_sprite_set_image(struct l2d_sprite*, l2d_ident, uint32_t flags);
 
 int
 l2d_sprite_get_image_width(struct l2d_sprite*);
