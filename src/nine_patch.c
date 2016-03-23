@@ -4,6 +4,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#ifndef WIN32
+#include <alloca.h>
+#else
+#ifndef alloca
+#define alloca _alloca
+#endif
+#endif
 
 static const unsigned short g3x3Indices[] = {
     0, 5, 1,    0, 4, 5,
@@ -382,7 +389,7 @@ l2d_nine_patch_parse(uint8_t* p, int bpp, int width, int height) {
     patch->xDivs = NULL;
     patch->yDivs = NULL;
 
-    int32_t tmpDivs[width>height?width:height];
+    int32_t* tmpDivs = alloca((width>height?width:height) * sizeof(int32_t));
 
     const char *errorMsg = NULL;
     // Find left and right of sizing areas...

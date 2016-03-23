@@ -2,6 +2,9 @@
 #define __primitives_H__
 
 #include <stdbool.h>
+#ifndef restrict
+#define restrict __restrict
+#endif
 
 struct quaternion {
     float w, x, y, z;

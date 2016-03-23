@@ -13,6 +13,14 @@
 #include <string.h>
 #include <math.h>
 
+#ifndef WIN32
+#include <alloca.h>
+#else
+#ifndef alloca
+#define alloca _alloca
+#endif
+#endif
+
 // TODO don't hard code something here.
 #define MAX_VERTICIES 1024
 
@@ -221,7 +229,7 @@ l2d_drawer_update_material(struct l2d_drawer* d) {
             e->blend = d->blend;
             e->material = d->material;
         } else {
-            struct l2d_image* built_stages[last_stage->id];
+            struct l2d_image** built_stages = alloca(last_stage->id * sizeof(struct l2d_image**));
             for (int i=0; i<last_stage->id; i++) built_stages[i] = NULL;
             l2d_drawer_resolve_stage_dep(d, d->ir, d->effect, last_stage, im, built_stages);
         }

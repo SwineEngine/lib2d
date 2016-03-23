@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define EXPORTED __attribute__((visibility("default")))
+
 
 struct sequence_frame {
     struct l2d_image* image;
@@ -54,7 +54,7 @@ struct l2d_sprite {
     bool stop_anims_on_hide;
 };
 
-EXPORTED
+L2D_EXPORTED
 struct l2d_sprite*
 l2d_sprite_new(struct l2d_scene* scene, l2d_ident image, uint32_t flags) {
     struct l2d_sprite* s = malloc(sizeof(struct l2d_sprite));
@@ -122,7 +122,7 @@ i_sprite_delete(struct l2d_sprite* s) {
     free(s);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_delete(struct l2d_sprite* s) {
     struct l2d_scene* scene = s->scene;
@@ -135,13 +135,13 @@ l2d_sprite_delete(struct l2d_sprite* s) {
     i_sprite_delete(s);
 }
 
-EXPORTED
+L2D_EXPORTED
 struct l2d_scene*
 l2d_sprite_get_scene(struct l2d_sprite* s) {
     return s->scene;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_image(struct l2d_sprite* s, l2d_ident image, uint32_t flags) {
     struct l2d_image* im = NULL;
@@ -163,19 +163,19 @@ l2d_sprite_set_image(struct l2d_sprite* s, l2d_ident image, uint32_t flags) {
     ib_image_incref(s->image);
 }
 
-EXPORTED
+L2D_EXPORTED
 int
 l2d_sprite_get_image_width(struct l2d_sprite* s) {
     return ib_image_get_width(s->image);
 }
 
-EXPORTED
+L2D_EXPORTED
 int
 l2d_sprite_get_image_height(struct l2d_sprite* s) {
     return ib_image_get_height(s->image);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
     if (p != s->parent && s->parent) {
@@ -198,7 +198,7 @@ l2d_sprite_set_parent(struct l2d_sprite* s, struct l2d_sprite* p) {
     }
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_size(struct l2d_sprite* s, int w, int h, uint32_t flags) {
     s->flags = flags;
@@ -227,33 +227,33 @@ l2d_sprite_set_size(struct l2d_sprite* s, int w, int h, uint32_t flags) {
         l2d_drawer_set_site(s->drawer, &s->site);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_order(struct l2d_sprite* s, int order) {
     l2d_drawer_setOrder(s->drawer, order);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_on_click(struct l2d_sprite* s, l2d_event_cb cb, void* userdata) {
     s->on_click = cb;
     s->on_click_userdata = userdata;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_on_anim_end(struct l2d_sprite* s, l2d_sprite_cb cb, void* userdata) {
     s->on_anim_end = cb;
     s->on_anim_end_userdata = userdata;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_stop_anims_on_hide(struct l2d_sprite* s, bool v) {
     s->stop_anims_on_hide = s;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_set_effect(struct l2d_sprite* s, struct l2d_effect* e) {
     l2d_drawer_set_effect(s->drawer, e);
@@ -344,7 +344,7 @@ i_sprite_step(struct l2d_sprite* s, float dt, struct site* parent_site, bool par
     }
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_step(struct l2d_sprite* s, float dt) {
     if (s->parent != NULL)
@@ -353,7 +353,7 @@ l2d_sprite_step(struct l2d_sprite* s, float dt) {
 }
 
 
-EXPORTED
+L2D_EXPORTED
 bool
 l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
     bool r = false;
@@ -367,13 +367,13 @@ l2d_sprite_feed_click(struct l2d_sprite* s, float x, float y, int button) {
     return r;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_blend(struct l2d_sprite* s, enum l2d_blend mode) {
     l2d_drawer_blend(s->drawer, mode);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_wrap_xy(struct l2d_sprite* s,
         float x_low, float x_high,
@@ -394,45 +394,45 @@ l2d_sprite_wrap_xy(struct l2d_sprite* s,
     s->site.wrap[3] = y_high;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_xy(struct l2d_sprite* s, float x, float y, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_x, x, dt, flags);
     l2d_anim_new(&s->anims_y, y, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_scale(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_scale_x, scale, dt, flags);
     l2d_anim_new(&s->anims_scale_y, scale, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_scale_x(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_scale_x, scale, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_scale_y(struct l2d_sprite* s, float scale, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_scale_y, scale, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_rot(struct l2d_sprite* s, float rot, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_rot, rot, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_a(struct l2d_sprite* s, float a, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_a, a, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_rgb(struct l2d_sprite* s, float r, float g, float b, float dt, uint32_t flags) {
     l2d_anim_new(&s->anims_r, r, dt, flags);
@@ -440,7 +440,7 @@ l2d_sprite_rgb(struct l2d_sprite* s, float r, float g, float b, float dt, uint32
     l2d_anim_new(&s->anims_b, b, dt, flags);
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_rgba(struct l2d_sprite* s, float r, float g, float b, float a, float dt, uint32_t flags) {
     l2d_sprite_a(s, a, dt, flags);
@@ -448,7 +448,7 @@ l2d_sprite_rgba(struct l2d_sprite* s, float r, float g, float b, float a, float 
 }
 
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_abort_anim(struct l2d_sprite* s) {
     l2d_anim_release_all(&s->anims_x);
@@ -463,7 +463,7 @@ l2d_sprite_abort_anim(struct l2d_sprite* s) {
 }
 
 
-EXPORTED
+L2D_EXPORTED
 int
 l2d_sprite_new_sequence(struct l2d_sprite* s) {
     struct sequence* sequence = sbadd(s->sequences, 1);
@@ -480,7 +480,7 @@ get_sequence(struct l2d_sprite* s, int i) {
     return &s->sequences[i];
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_sequence_add_frame(struct l2d_sprite* s, int sequence,
         l2d_ident image, float duration, uint32_t image_flags) {
@@ -497,7 +497,7 @@ l2d_sprite_sequence_add_frame(struct l2d_sprite* s, int sequence,
     }
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_sequence_play(struct l2d_sprite* s, int sequence,
         int start_frame, float speed_multiplier, uint32_t anim_flags) {
@@ -518,7 +518,7 @@ l2d_sprite_sequence_play(struct l2d_sprite* s, int sequence,
     s->sequence_speed = speed_multiplier;
 }
 
-EXPORTED
+L2D_EXPORTED
 void
 l2d_sprite_sequence_stop(struct l2d_sprite* s) {
     if (!s->playing_sequence) return;

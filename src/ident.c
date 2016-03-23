@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EXPORTED __attribute__((visibility("default")))
+
 
 
 struct reverse_entry {
@@ -17,7 +17,7 @@ struct reverse_entry {
 
 static struct reverse_entry* reverse = NULL;
 
-EXPORTED
+L2D_EXPORTED
 l2d_ident
 l2d_ident_from_str(const char* str) {
     if (!str || strlen(str) == 0)
@@ -43,7 +43,7 @@ l2d_ident_from_str(const char* str) {
     return ident;
 }
 
-EXPORTED
+L2D_EXPORTED
 l2d_ident
 l2d_ident_from_strn(const char* str, int len) {
     assert(len < 255);
@@ -53,7 +53,7 @@ l2d_ident_from_strn(const char* str, int len) {
     return l2d_ident_from_str(s);
 }
 
-EXPORTED
+L2D_EXPORTED
 const char*
 l2d_ident_as_char(l2d_ident ident) {
     sbforeachp(struct reverse_entry*e, reverse) {
